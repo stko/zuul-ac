@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
 import json
+
 import zuullogger
 import translate
 
@@ -9,7 +11,7 @@ _ = translate.gettext
 
 logger = zuullogger.getLogger(__name__)
 config = {}
-config_file_name='config.json'
+config_file_name=os.path.join(os.path.dirname(__file__), 'config.json')
 
 try:
 	with open(config_file_name) as json_file:

@@ -19,41 +19,36 @@ import ssl
 import json
 from base64 import b64encode
 import argparse
-
+import time
+	
+import threading
 
 from pprint import pprint
 
 from socketserver import ThreadingMixIn
 from http.server import HTTPServer
 from io import StringIO
+import storage
 
-
-try:
-	with open(r'config.yaml') as file:
-		# The FullLoader parameter handles the conversion from YAML
-		# scalar values to Python the dictionary format
-		global_config = yaml.load(file, Loader=yaml.Loader)
-except:
-	global_config={
+server_config = storage.read_config_value("server_config")
+if not server_config:
+	server_config={
 		'host': 'localhost',
 		'port': 8000,
-		'secure': True,
-		'credentials': '',
-		'rooms':{
-			'default' : 'no_idea..'
-		}
+		'secure': False,
+		'credentials': ''
 	}
-
+storage.write_config_value("server_config",server_config)
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--host", default=global_config["host"],
+parser.add_argument("--host", default=server_config["host"],
                     help="the IP interface to bound the server to")
-parser.add_argument("-p", "--port", default=global_config["port"],
+parser.add_argument("-p", "--port", default=server_config["port"],
                     help="the server port")
-parser.add_argument("-s", "--secure", action="store_true", default=global_config["secure"],
+parser.add_argument("-s", "--secure", action="store_true", default=server_config["secure"],
                     help="use secure https: and wss:")
-parser.add_argument("-c", "--credentials",  default=global_config["credentials"],
+parser.add_argument("-c", "--credentials",  default=server_config["credentials"],
                     help="user credentials")
 args = parser.parse_args()
 print(repr(args))
@@ -153,30 +148,40 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 			return None
 
 
-
-def _ws_main():
-	try:
+def ws_create():
 		server = ThreadedHTTPServer((args.host, args.port), WSZuulHandler)
 		server.daemon_threads = True
 		server.auth = b64encode(args.credentials.encode("ascii"))
 		if args.secure:
-			# double with line above?!?
-			#server.auth = b64encode(args.credentials.encode("ascii"))
 			server.socket = ssl.wrap_socket(
 				server.socket, certfile='./server.pem', keyfile='./key.pem', server_side=True)
-			print('started secure https server at port %d' % (args.port))
+			print('initialized secure https server at port %d' % (args.port))
 		else:
-			print('started http server at port %d' % (args.port))
+			print('initialized http server at port %d' % (args.port))
+		return server
+
+
+def _ws_main(server):
+	try:
+
 		origin_dir = os.path.dirname(__file__)
-		web_dir = os.path.join(os.path.dirname(__file__), '../public')
+		web_dir = os.path.join(os.path.dirname(__file__), 'public')
 		os.chdir(web_dir)
 
 		server.serve_forever()
+
 		os.chdir(origin_dir)
 	except KeyboardInterrupt:
 		print('^C received, shutting down server')
 		server.socket.close()
 
+def ws_thread(server):
+		
+	# Create a Thread with a function without any arguments
+	th = threading.Thread(target=_ws_main, args=(server,))
+	# Start the thread
+	th.setDaemon(True) 
+	th.start()
 
 if __name__ == '__main__':
-	_ws_main()
+	ws_thread()
