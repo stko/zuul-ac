@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 import qrcode
 import string
 import secrets
@@ -23,6 +23,31 @@ class ZuulMessengerPlugin:
 	implements the connection to the telegram messenger infrastructure
 	'''
 
+	def clear_keyboard(self):
+		''' initialize the virtual keyboard'''
+
+		self.keyboard=[[]]
+		self.keyboard_functions={}
+
+	def add_keyboard_item(self, text, callback_data, callback_function,new_row):
+		if self.keyboard and new_row:
+			self.keyboard.append([])
+		last_row=self.keyboard[-1]
+		last_row.append(InlineKeyboardButton(text, callback_data=callback_data))
+		self.keyboard_functions[callback_data]=callback_function
+
+	def compile_keyboard(self):
+		return  InlineKeyboardMarkup(self.keyboard)
+
+	def execute_keyboard_callback(self,callback_data ):
+		if not callback_data in self.keyboard_functions:
+			print("ilegal callback_data")
+			return None
+		return self.keyboard_functions[callback_data](callback_data)
+
+	def simple_keyboard_callback(self, callback_data):
+		print("simple callback",callback_data)
+
 	def __init__(self, messenger_token):
 
 		"""Start the bot."""
@@ -31,13 +56,17 @@ class ZuulMessengerPlugin:
 		# Post version 12 this will no longer be necessary
 		updater = Updater(messenger_token, use_context=True)
 
+		self.keyboard=[[]]
+		self.keyboard_functions={}
+
+		self.last_shared_user=None
 		# Get the dispatcher to register handlers
 		dp = updater.dispatcher
 
 		# on different commands - answer in Telegram
 		dp.add_handler(CommandHandler("start", self.start))
 		dp.add_handler(CommandHandler("help", self.help))
-
+		dp.add_handler(CallbackQueryHandler(self.button))
 		dp.add_handler(MessageHandler(Filters.contact, self.contact))
 
 		# on noncommand i.e message - echo the message on Telegram
@@ -101,9 +130,18 @@ class ZuulMessengerPlugin:
 
 	def contact(self, update, context):
 		"""Send a message when the command /help is issued."""
+		self.clear_keyboard()
+		self.add_keyboard_item("keyb 1","callb_1",self.simple_keyboard_callback,True)
+		self.add_keyboard_item("keyb 2","callb_2",self.simple_keyboard_callback,True)
+		self.add_keyboard_item("keyb 3","callb_3",self.simple_keyboard_callback,True)
+		reply_markup = self.compile_keyboard()
 		print("contact",repr(update.message.contact.user_id))
+		update.message.reply_text('Please choose:', reply_markup=reply_markup)
 
-
+	def button(self,update, context):
+		query = update.callback_query
+		self.execute_keyboard_callback(query.data)
+		query.edit_message_text(text="Selected option: {}".format(query.data))
 
 	def echo(self, update, context):
 		"""Echo the user message."""
