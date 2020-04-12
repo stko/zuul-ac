@@ -28,30 +28,6 @@ from pprint import pprint
 from socketserver import ThreadingMixIn
 from http.server import HTTPServer
 from io import StringIO
-import storage
-
-server_config = storage.read_config_value("server_config")
-if not server_config:
-	server_config={
-		'host': 'localhost',
-		'port': 8000,
-		'secure': False,
-		'credentials': ''
-	}
-storage.write_config_value("server_config",server_config)
-
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--host", default=server_config["host"],
-                    help="the IP interface to bound the server to")
-parser.add_argument("-p", "--port", default=server_config["port"],
-                    help="the server port")
-parser.add_argument("-s", "--secure", action="store_true", default=server_config["secure"],
-                    help="use secure https: and wss:")
-parser.add_argument("-c", "--credentials",  default=server_config["credentials"],
-                    help="user credentials")
-args = parser.parse_args()
-print(repr(args))
 
 
 
@@ -148,17 +124,39 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 			return None
 
 
-def ws_create():
-		server = ThreadedHTTPServer((args.host, args.port), WSZuulHandler)
-		server.daemon_threads = True
-		server.auth = b64encode(args.credentials.encode("ascii"))
-		if args.secure:
-			server.socket = ssl.wrap_socket(
-				server.socket, certfile='./server.pem', keyfile='./key.pem', server_side=True)
-			print('initialized secure https server at port %d' % (args.port))
-		else:
-			print('initialized http server at port %d' % (args.port))
-		return server
+def ws_create(storage):
+	server_config = storage.read_config_value("server_config")
+	if not server_config:
+		server_config={
+			'host': 'localhost',
+			'port': 8000,
+			'secure': False,
+			'credentials': ''
+		}
+	storage.write_config_value("server_config",server_config)
+
+
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--host", default=server_config["host"],
+						help="the IP interface to bound the server to")
+	parser.add_argument("-p", "--port", default=server_config["port"],
+						help="the server port")
+	parser.add_argument("-s", "--secure", action="store_true", default=server_config["secure"],
+						help="use secure https: and wss:")
+	parser.add_argument("-c", "--credentials",  default=server_config["credentials"],
+						help="user credentials")
+	args = parser.parse_args()
+	print(repr(args))
+	server = ThreadedHTTPServer((args.host, args.port), WSZuulHandler)
+	server.daemon_threads = True
+	server.auth = b64encode(args.credentials.encode("ascii"))
+	if args.secure:
+		server.socket = ssl.wrap_socket(
+			server.socket, certfile='./server.pem', keyfile='./key.pem', server_side=True)
+		print('initialized secure https server at port %d' % (args.port))
+	else:
+		print('initialized http server at port %d' % (args.port))
+	return server
 
 
 def _ws_main(server):

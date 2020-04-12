@@ -3,19 +3,29 @@ import traceback
 import sys
 import zuullogger
 import storage
+import threading
 
 class Messenger(object):
 
-	def __init__(self, messenger_name, messenger_token): 
+	def __init__(self, messenger_name, messenger_token, access_manager): 
 		try:
 			self.messenger_name=messenger_name
+			self.messenger_token=messenger_token
+			self.access_manager=access_manager
 			myModule=importlib.import_module("m_" + messenger_name.lower())
-			my_messenger_class=getattr(myModule,"ZuulMessengerPlugin")
-			self.messenger=my_messenger_class(messenger_token)
+			self.my_messenger_class=getattr(myModule,"ZuulMessengerPlugin")
+			# Create a Thread with a function without any arguments
+			self.th = threading.Thread(target=self.run_thread)
+			# Start the thread
+			self.th.setDaemon(True) 
+			self.th.start()
 		except:
 			print("Can't load plugin "+messenger_name)
 			self.plugin=None
 			traceback.print_exc(file=sys.stdout)
+
+	def run_thread(self):
+		self.messenger=self.my_messenger_class(self.messenger_token,self.access_manager)
 
 
 

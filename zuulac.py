@@ -4,11 +4,41 @@
 import time
 import webserver
 import accessmanager
+import storage
+from messenger import Messenger
+import zuullogger
 
-server=webserver.ws_create()
-server.register("ac_",None,accessmanager.msg,accessmanager.dummy,accessmanager.dummy)
+
+# https://inventwithpython.com/blog/2014/12/20/translate-your-python-3-program-with-the-gettext-module/
+'''
+import gettext
+localedir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'locale')
+translate = gettext.translation('guess', localedir, fallback=True)
+_ = translate.gettext
+'''
+_ = lambda s: s
+
+
+logger = zuullogger.getLogger(__name__)
+
+
+
+store = storage.Storage()
+am= accessmanager.AccessManager(store)
+
+messenger_token=store.read_config_value("messenger_token")
+messenger_type=store.read_config_value("messenger_type")
+print(messenger_token,messenger_type )
+if messenger_token and messenger_type:
+	messenger= Messenger(messenger_type,messenger_token,am)
+else:
+	logger.error(_("Config incomplete: No messenger_token or messenger_type"))
+	
+
+
+server=webserver.ws_create(store)
+server.register("ac_",None,am.msg,am.dummy,am.dummy)
 webserver.ws_thread(server)
-print("return from Thread")
 while(True):
 	time.sleep(1)
 
