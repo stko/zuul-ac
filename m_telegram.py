@@ -11,11 +11,9 @@ import zuullogger
 from user import User
 from io import BytesIO
 
-import translate
-
-_ = translate.gettext
+# from  translate import translate
+# _ = translate.gettext
 logger = zuullogger.getLogger(__name__)
-
 
 
 class ZuulMessengerPlugin:
@@ -61,14 +59,13 @@ class ZuulMessengerPlugin:
 		the callback_data 
 
 		Args:
-		callback_data (:obj:`str`): The value reported back to the keyboard handler
+		query (:obj:`str`): reference to the requested query. callback data is located in query.data
 		'''
-
 
 		if not query.data in self.keyboard_functions:
 			print("ilegal callback_data")
 			return None
-		return self.keyboard_functions[query.data]( update, context, query)
+		return self.keyboard_functions[query.data](update, context, query)
 
 	def __init__(self, messenger_token, access_manager):
 		"""Start the bot."""
@@ -82,14 +79,15 @@ class ZuulMessengerPlugin:
 		self.keyboard_functions = {}
 		self.new_contact = None
 
-		self.last_shared_user = None
 		# Get the dispatcher to register handlers
 		dp = updater.dispatcher
 
 		# on different commands - answer in Telegram
 		dp.add_handler(CommandHandler("start", self.new_pin))
 		dp.add_handler(CommandHandler("help", self.help))
-		dp.add_handler(CallbackQueryHandler(self.button,pass_update_queue=True))
+		dp.add_handler(CallbackQueryHandler(
+			self.button, pass_update_queue=True))
+		# handler when user shares a contact
 		dp.add_handler(MessageHandler(Filters.contact, self.share_contact))
 
 		# on noncommand i.e message - echo the message on Telegram
@@ -111,12 +109,13 @@ class ZuulMessengerPlugin:
 	def user(self, update):
 		'''filters the user data out of the update object'''
 		chat_user = update.effective_user
+		print("user name:", chat_user.last_name)
 		return User(chat_user.first_name, chat_user.last_name, chat_user.id, chat_user.
 					language_code)
 
-	def send_image(self, update,query):
+	def send_image(self, update, query):
 		user = self.user(update)
-		msg=self.select_message_source(update,query)
+		msg = self.select_message_source(update, query)
 
 		qr = qrcode.QRCode(
 			version=1,
@@ -124,7 +123,8 @@ class ZuulMessengerPlugin:
 			box_size=10,
 			border=4,
 		)
-		qr.add_data(self.access_manager.requestOTP(user))
+		otp, timeout = self.access_manager.requestOTP(user)
+		qr.add_data(otp)
 		qr.make(fit=True)
 
 		img = qr.make_image(fill_color="black", back_color="white")
@@ -135,19 +135,17 @@ class ZuulMessengerPlugin:
 		bio.seek(0)
 
 		msg.reply_text(
-			_('Dieser Code ist 60 Sekunden gültig - Halte ihn einfach vor die Kamera, um die Tür zu öffnen'))
+			_('This Pin is valid for {0} seconds - Just present it to the door camera to open the door').format(timeout))
 		#update.message.reply_photo( photo= open('qr-code.png', 'rb'))
 		msg.reply_photo(photo=bio)
-		msg.reply_text(
-			_('Wenn Du einen neuen Code brauchst, schreib hier einfach irgend etwas'))
 
 	# Define a few command handlers. These usually take the two arguments update and
 	# context. Error handlers also receive the raised TelegramError object in error.
 
-	def simple_keyboard_callback(self, callback_data):
-		print("simple callback", callback_data)
+	def simple_keyboard_callback(self, update, context, query):
+		print("simple callback", query.data)
 
-	def select_message_source(self, update,query):
+	def select_message_source(self, update, query):
 		if query:
 			return query.message
 		else:
@@ -159,99 +157,175 @@ class ZuulMessengerPlugin:
 
 	def menu_new_pin(self, update, context, query):
 		"""Send a pin instandly"""
-		msg=self.select_message_source(update,query)
+		msg = self.select_message_source(update, query)
 
-		if self.access_manager.user_info(self.user(update))!=None: # known user?
-			msg.reply_text(_('Hi!'))
-			self.send_image(update,query)
+		# known user?
+		self.current_user = self.access_manager.user_info(self.user(update))
+		# demo mode
+		if self.current_user != None or True:
+			self.send_image(update, query)
+		self.menu_main(update, context, query)
+
+	def menu_help(self, update, context, query):
+		"""Send the docs URL"""
+		msg = self.select_message_source(update, query)
+		msg.reply_text(_("https://github.com/stko/zuul-ac"))
 		self.menu_main(update, context, query)
 
 	def help(self, update, context):
 		"""Send a message when the command /help is issued."""
-		update.message.reply_text(_('Help!'))
+		update.message.reply_text(_('Go to the Online Manual'))
+		self.menu_help(update, context, None)
 
 	def add_follower_callback(self, update, context, query):
 		'''adds a new user'''
-		if self.new_contact:
-			self.access_manager.add_user(self.new_contact)
-		self.new_contact=None
+		msg = self.select_message_source(update, query)
+		if self.new_contact and self.current_user:
+			self.access_manager.add_user(self.current_user, self.new_contact)
+			msg.reply_text(_('Key lend to {0} {1}').format(
+				self.new_contact['first_name'], self.new_contact['last_name']))
+		else:
+			msg.reply_text(_("Something went wrong"))
+		self.new_contact = None
 		self.menu_main(update, context, query)
 
 	def delete_follower_callback(self, update, context, query):
 		'''deletes a user'''
-		self.access_manager.delete_user_by_id(query.data)
+		msg = self.select_message_source(update, query)
+		delete_user = self.access_manager.user_info_by_id(query.data)
+		if delete_user and self.current_user:
+			self.access_manager.delete_user_by_id(
+				self.current_user, query.data)
+			msg.reply_text(_('Key brought back from {0} {1}').format(
+				delete_user['first_name'], delete_user['last_name']))
+		else:
+			msg.reply_text(_("Something went wrong"))
 		self.menu_main(update, context, query)
 
-	def menu_main(self, update, context, query):
-		msg=self.select_message_source(update,query)
-		self.clear_keyboard()
-		if self.access_manager.user_info(self.user(update)) != None: # known user?
-			self.add_keyboard_item(_("New Pin"), "dummy",
-								self.menu_new_pin, True)
-			reply_markup = self.compile_keyboard()
-			msg.reply_text(_('Your Choice?:'), reply_markup=reply_markup)
+	def list_follower_callback(self, update, context, query):
+		msg = self.select_message_source(update, query)
+		self.last_follower_pos = self.fill_list(
+			query.data, self.access_manager.get_user_list, self.delete_follower_callback, self.list_follower_callback)
+		self.add_keyboard_item(_('Commands'), "menu",
+							   self.menu_menu, True)
+		reply_markup = self.compile_keyboard()
+		msg.reply_text(_('Choose the Key to get back'),
+					   reply_markup=reply_markup)
 
+	def fill_list(self, last_pos, get_list, item_callback, list_callback):
+		self.clear_keyboard()
+		last_pos = int(last_pos)
+		items_per_page = 5
+		item_list = get_list()
+		list_len = len(item_list)
+		# calculate view
+		for i in range(items_per_page):
+			if (i+last_pos) < list_len:
+				self.add_keyboard_item(item_list[i+last_pos]["text"], item_list[i+last_pos]["user_id"],
+									   item_callback, True)
+		if last_pos > 0:
+			new_pos = last_pos-items_per_page
+			if new_pos < 0:
+				new_pos = 0
+			self.add_keyboard_item('<', str(new_pos),
+								   list_callback, True)
 		else:
-			msg.reply_text(
-					_('unknown user!'), reply_markup=reply_markup)
+			self.add_keyboard_item('-', '0',
+								   list_callback, True)
+		if last_pos+items_per_page < list_len:
+			self.add_keyboard_item('>', str(last_pos+items_per_page),
+								   list_callback, False)
+		else:
+			self.add_keyboard_item('-', str(last_pos),
+								   list_callback, False)
 
+	def menu_menu(self, update, context, query):
+		msg = self.select_message_source(update, query)
+		self.clear_keyboard()
+		self.add_keyboard_item(_("Get lend Keys back"), "0",
+							   self.list_follower_callback, True)
+		self.add_keyboard_item(_("Return borrowed Keys"), "mykeys",
+							   self.simple_keyboard_callback, True)
+		self.add_keyboard_item(_("Help"), "help",
+							   self.menu_help, True)
+		self.add_keyboard_item(_("Main Menu"), "goto_main",
+							   self.menu_main, True)
+		reply_markup = self.compile_keyboard()
+		msg.reply_text(_('Commands'), reply_markup=reply_markup)
 
+	def menu_main(self, update, context, query):
+		msg = self.select_message_source(update, query)
+		self.clear_keyboard()
+		# known user?
+		self.current_user = self.access_manager.user_info(self.user(update))
+		# demo mode
+		if self.current_user != None or True:
+			text_info = _('Main Menu')
+			self.add_keyboard_item(_("New Pin"), "dummy",
+								   self.menu_new_pin, True)
+			self.add_keyboard_item(_("Commands"), "menu",
+								   self.menu_menu, True)
+		else:
+			text_info = _('Unknown User!')
+			self.add_keyboard_item(_("Help"), "help",
+								   self.menu_help, True)
 
-	def add_follower(self, update, context,new_user):
+		reply_markup = self.compile_keyboard()
+		msg.reply_text(text_info, reply_markup=reply_markup)
+
+	def add_follower(self, update, context, new_user):
 
 		self.clear_keyboard()
-		self.add_keyboard_item(_("Add"), "add",
+		self.add_keyboard_item(_("Lend Key"), "add",
 							   self.add_follower_callback, True)
-		self.add_keyboard_item(_("Main"), "goto_main",
+		self.add_keyboard_item(_('Main Menu'), "goto_main",
 							   self.menu_main, True)
 		reply_markup = self.compile_keyboard()
 
 		update.message.reply_text(
-			_('Ok to add {0} {1}?:').format(new_user.first_name,new_user.last_name), reply_markup=reply_markup)
+			_('Ok to lend the Key to {0} {1}?').format(new_user['first_name'], new_user['last_name']), reply_markup=reply_markup)
 
-
-	def delete_follower(self, update, context,user):
+	def delete_follower(self, update, context, user):
 		'''deletes a user'''
 		self.clear_keyboard()
-		self.add_keyboard_item(_("Delete"), self.access_manager.user_id(user),
+		self.add_keyboard_item(_("Bring Back"), self.access_manager.user_id(user),
 							   self.delete_follower_callback, True)
-		self.add_keyboard_item(_("Main"), "goto_main",
+		self.add_keyboard_item(_('Main Menu'), "goto_main",
 							   self.menu_main, True)
 		reply_markup = self.compile_keyboard()
 
 		update.message.reply_text(
-			_('Ok to Delete {0} {1}?:').format(user.first_name,user.last_name), reply_markup=reply_markup)
-
+			_('Ok to bring back the key from {0} {1}?').format(user['first_name'], user['last_name']), reply_markup=reply_markup)
 
 	def share_contact(self, update, context):
+		self.current_user = self.access_manager.user_info(self.user(update))
+
 		"""Checks, if a shared contact already exists"""
 		self.new_contact = User(update.message.contact.first_name, update.message.contact.last_name,
-									 update.message.contact.user_id, None)  # contacts don't have language codes
-		print("contact", repr(self.new_contact))
+								update.message.contact.user_id, None)  # contacts don't have language codes
 		user_info = self.access_manager.user_info(self.new_contact)
 		if user_info != None:
-			self.delete_follower(update, context,user_info)
+			if self.access_manager.is_user_active(self.current_user,self.new_contact):
+				self.delete_follower(update, context, user_info)
+			else:
+				self.add_follower(update, context, self.new_contact)
 		else:
-			self.add_follower(update, context,self.new_contact)
-
-
+			self.add_follower(update, context, self.new_contact)
 
 	def button(self, update, context):
 		query = update.callback_query
-		 # CallbackQueries need to be answered, even if no notification to the user is needed
+		# CallbackQueries need to be answered, even if no notification to the user is needed
 		# Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
 		query.answer()
-		self.execute_keyboard_callback( update, context, query)
+		self.execute_keyboard_callback(update, context, query)
 		#query.edit_message_text(text="Selected option: {}".format(query.data))
 
 	def echo(self, update, context):
 		"""Echo the user message."""
-		update.message.reply_text(_("Du schriebst:")+update.message.text)
+		update.message.reply_text(_("You wrote:")+update.message.text)
 		print(update.message.text)
 		self.menu_main(update, context, None)
-
 
 	def error(self, update, context):
 		"""Log Errors caused by Updates."""
 		logger.warning('Update "%s" caused error "%s"', update, context.error)
-
