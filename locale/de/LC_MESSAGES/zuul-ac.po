@@ -1,0 +1,99 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: 2020-04-13 10:31+CEST\n"
+"PO-Revision-Date: 2020-04-13 10:34+0200\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+"X-Generator: Poedit 2.0.6\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: m_telegram.py:138
+msgid ""
+"This Pin is valid for {0} seconds - Just present it to the door camera to "
+"open the door"
+msgstr ""
+"Dieser Pin ist für {0} Sekunden gültig- Halte ihn einfach vor die Tür- "
+"Kamera um die Tür zu öffnen"
+
+#: m_telegram.py:170
+msgid "https://github.com/stko/zuul-ac"
+msgstr "https://github.com/stko/zuul-ac"
+
+#: m_telegram.py:175
+msgid "Go to the Online Manual"
+msgstr "Öffne das Online - Handbuch"
+
+#: m_telegram.py:194 m_telegram.py:239 m_telegram.py:249 m_telegram.py:267
+#: m_telegram.py:279
+msgid "Main Menu"
+msgstr "Haupt- Menü"
+
+#: m_telegram.py:197
+msgid "Choose the Key to get back"
+msgstr "Wähle den Schlüssel zum Zurückholen"
+
+#: m_telegram.py:233
+msgid "Get lend Keys back"
+msgstr "Hole ausgeliehene Schlüssel zurück"
+
+#: m_telegram.py:235
+msgid "Return borrowed Keys"
+msgstr "Gebe geliehene Schlüssel zurück"
+
+#: m_telegram.py:237 m_telegram.py:256
+msgid "Help"
+msgstr "Hilfe"
+
+#: m_telegram.py:242 m_telegram.py:252
+msgid "Commands"
+msgstr "Befehle"
+
+#: m_telegram.py:250
+msgid "New Pin"
+msgstr "Neuer Pin"
+
+#: m_telegram.py:255
+msgid "Unknown User!"
+msgstr "Unbekannter Benutzer!"
+
+#: m_telegram.py:265
+msgid "Lend Key"
+msgstr "Verleihe den Schlüssel"
+
+#: m_telegram.py:272
+msgid "Ok to lend the Key to {0} {1}?"
+msgstr "Willst Du den Schlüssel an {0} {1} verleihen?"
+
+#: m_telegram.py:277
+msgid "Bring Back"
+msgstr "Hole ihn zurück"
+
+#: m_telegram.py:284
+msgid "Ok to bring back the key from {0} {1}?"
+msgstr "Willst Du den Schlüssel von {0} {1} zurückholen?"
+
+#: m_telegram.py:306
+msgid "You wrote:"
+msgstr "Du hast geschrieben:"
+
+#: messenger.py:53 zuulac.py:35
+msgid "Config incomplete: No messenger_token or messenger_type"
+msgstr ""
+"Konfiguration unvollständig: Messenger Token oder Messenger Type nicht "
+"gesetzt"
+
+#~ msgid "Main"
+#~ msgstr "Haupt-Menü"
+
+#~ msgid "couldn't load config file {0}"
+#~ msgstr "Kann das Konfigu"
