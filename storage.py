@@ -37,7 +37,7 @@ class Storage:
 			if not admin in self.users['users']:
 				self.users['users'][admin]={'user':user.User('Alice','Admin',admin,'en')}
 
-	def read_config_value(self,key):
+	def read_config_value(self,key,default=None):
 		''' read value from config, identified by key
 
 		Args:
@@ -46,7 +46,7 @@ class Storage:
 
 		if key in self.config:
 			return self.config[key]
-		return None
+		return default
 
 
 	def write_config_value(self, key, value):

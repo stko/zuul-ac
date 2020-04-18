@@ -21,9 +21,9 @@ class ZuulMessengerPlugin:
 	implements the connection to the telegram messenger infrastructure
 	'''
 
-	def _ (self,text):
+	def _(self, text):
 		if self.current_user:
-			return translate.gettext(text,self.current_user['language'])
+			return translate.gettext(text, self.current_user['language'])
 		else:
 			return text
 
@@ -84,7 +84,7 @@ class ZuulMessengerPlugin:
 		self.keyboard = [[]]
 		self.keyboard_functions = {}
 		self.new_contact = None
-		self.current_user=None
+		self.current_user = None
 		# Get the dispatcher to register handlers
 		dp = updater.dispatcher
 
@@ -213,7 +213,7 @@ class ZuulMessengerPlugin:
 		self.last_follower_pos = self.fill_list(
 			query.data, self.access_manager.get_user_list, self.delete_follower_callback, self.list_follower_callback)
 		self.add_keyboard_item(self._('Commands'), "menu",
-							   self.menu_menu, True)
+												   self.menu_menu, True)
 		reply_markup = self.compile_keyboard()
 		msg.reply_text(self._('Choose the Key to get back'),
 					   reply_markup=reply_markup)
@@ -222,7 +222,7 @@ class ZuulMessengerPlugin:
 		self.clear_keyboard()
 		last_pos = int(last_pos)
 		items_per_page = 5
-		item_list = get_list()
+		item_list = get_list(self.current_user)
 		list_len = len(item_list)
 		# calculate view
 		for i in range(items_per_page):
@@ -270,7 +270,7 @@ class ZuulMessengerPlugin:
 			self.add_keyboard_item(self._("New Pin"), "dummy",
 								   self.menu_new_pin, True)
 			self.add_keyboard_item(self._("Commands"), "menu",
-								   self.menu_menu, True)
+													   self.menu_menu, True)
 		else:
 			text_info = self._('Unknown User!')
 			self.add_keyboard_item(self._("Help"), "help",
@@ -283,7 +283,7 @@ class ZuulMessengerPlugin:
 
 		self.clear_keyboard()
 		self.add_keyboard_item(self._("Lend Key"), "add",
-							   self.add_follower_callback, True)
+												   self.add_follower_callback, True)
 		self.add_keyboard_item(self._('Main Menu'), "goto_main",
 							   self.menu_main, True)
 		reply_markup = self.compile_keyboard()
@@ -311,7 +311,7 @@ class ZuulMessengerPlugin:
 								update.message.contact.user_id, None)  # contacts don't have language codes
 		user_info = self.access_manager.user_info(self.new_contact)
 		if user_info != None:
-			if self.access_manager.is_user_active(self.current_user,self.new_contact):
+			if self.access_manager.is_user_active(self.current_user, self.new_contact):
 				self.delete_follower(update, context, user_info)
 			else:
 				self.add_follower(update, context, self.new_contact)
