@@ -11,7 +11,7 @@ import zuullogger
 from user import User
 from io import BytesIO
 
-# from  translate import translate
+import translate
 # _ = translate.gettext
 logger = zuullogger.getLogger(__name__)
 
@@ -20,6 +20,12 @@ class ZuulMessengerPlugin:
 	'''
 	implements the connection to the telegram messenger infrastructure
 	'''
+
+	def _ (self,text):
+		if self.current_user:
+			return translate.gettext(text,self.current_user['language'])
+		else:
+			return text
 
 	def clear_keyboard(self):
 		''' initialize the virtual keyboard'''
@@ -78,7 +84,7 @@ class ZuulMessengerPlugin:
 		self.keyboard = [[]]
 		self.keyboard_functions = {}
 		self.new_contact = None
-
+		self.current_user=None
 		# Get the dispatcher to register handlers
 		dp = updater.dispatcher
 
@@ -135,7 +141,7 @@ class ZuulMessengerPlugin:
 		bio.seek(0)
 
 		msg.reply_text(
-			_('This Pin is valid for {0} seconds - Just present it to the door camera to open the door').format(timeout))
+			self._('This Pin is valid for {0} seconds - Just present it to the door camera to open the door').format(timeout))
 		#update.message.reply_photo( photo= open('qr-code.png', 'rb'))
 		msg.reply_photo(photo=bio)
 
@@ -169,12 +175,12 @@ class ZuulMessengerPlugin:
 	def menu_help(self, update, context, query):
 		"""Send the docs URL"""
 		msg = self.select_message_source(update, query)
-		msg.reply_text(_("https://github.com/stko/zuul-ac"))
+		msg.reply_text(self._("https://github.com/stko/zuul-ac"))
 		self.menu_main(update, context, query)
 
 	def help(self, update, context):
 		"""Send a message when the command /help is issued."""
-		update.message.reply_text(_('Go to the Online Manual'))
+		update.message.reply_text(self._('Go to the Online Manual'))
 		self.menu_help(update, context, None)
 
 	def add_follower_callback(self, update, context, query):
@@ -182,10 +188,10 @@ class ZuulMessengerPlugin:
 		msg = self.select_message_source(update, query)
 		if self.new_contact and self.current_user:
 			self.access_manager.add_user(self.current_user, self.new_contact)
-			msg.reply_text(_('Key lend to {0} {1}').format(
+			msg.reply_text(self._('Key lend to {0} {1}').format(
 				self.new_contact['first_name'], self.new_contact['last_name']))
 		else:
-			msg.reply_text(_("Something went wrong"))
+			msg.reply_text(self._("Something went wrong"))
 		self.new_contact = None
 		self.menu_main(update, context, query)
 
@@ -196,20 +202,20 @@ class ZuulMessengerPlugin:
 		if delete_user and self.current_user:
 			self.access_manager.delete_user_by_id(
 				self.current_user, query.data)
-			msg.reply_text(_('Key brought back from {0} {1}').format(
+			msg.reply_text(self._('Key brought back from {0} {1}').format(
 				delete_user['first_name'], delete_user['last_name']))
 		else:
-			msg.reply_text(_("Something went wrong"))
+			msg.reply_text(self._("Something went wrong"))
 		self.menu_main(update, context, query)
 
 	def list_follower_callback(self, update, context, query):
 		msg = self.select_message_source(update, query)
 		self.last_follower_pos = self.fill_list(
 			query.data, self.access_manager.get_user_list, self.delete_follower_callback, self.list_follower_callback)
-		self.add_keyboard_item(_('Commands'), "menu",
+		self.add_keyboard_item(self._('Commands'), "menu",
 							   self.menu_menu, True)
 		reply_markup = self.compile_keyboard()
-		msg.reply_text(_('Choose the Key to get back'),
+		msg.reply_text(self._('Choose the Key to get back'),
 					   reply_markup=reply_markup)
 
 	def fill_list(self, last_pos, get_list, item_callback, list_callback):
@@ -242,16 +248,16 @@ class ZuulMessengerPlugin:
 	def menu_menu(self, update, context, query):
 		msg = self.select_message_source(update, query)
 		self.clear_keyboard()
-		self.add_keyboard_item(_("Get lend Keys back"), "0",
+		self.add_keyboard_item(self._("Get lend Keys back"), "0",
 							   self.list_follower_callback, True)
-		self.add_keyboard_item(_("Return borrowed Keys"), "mykeys",
+		self.add_keyboard_item(self._("Return borrowed Keys"), "mykeys",
 							   self.simple_keyboard_callback, True)
-		self.add_keyboard_item(_("Help"), "help",
+		self.add_keyboard_item(self._("Help"), "help",
 							   self.menu_help, True)
-		self.add_keyboard_item(_("Main Menu"), "goto_main",
+		self.add_keyboard_item(self._("Main Menu"), "goto_main",
 							   self.menu_main, True)
 		reply_markup = self.compile_keyboard()
-		msg.reply_text(_('Commands'), reply_markup=reply_markup)
+		msg.reply_text(self._('Commands'), reply_markup=reply_markup)
 
 	def menu_main(self, update, context, query):
 		msg = self.select_message_source(update, query)
@@ -260,14 +266,14 @@ class ZuulMessengerPlugin:
 		self.current_user = self.access_manager.user_info(self.user(update))
 		# demo mode
 		if self.current_user != None or True:
-			text_info = _('Main Menu')
-			self.add_keyboard_item(_("New Pin"), "dummy",
+			text_info = self._('Main Menu')
+			self.add_keyboard_item(self._("New Pin"), "dummy",
 								   self.menu_new_pin, True)
-			self.add_keyboard_item(_("Commands"), "menu",
+			self.add_keyboard_item(self._("Commands"), "menu",
 								   self.menu_menu, True)
 		else:
-			text_info = _('Unknown User!')
-			self.add_keyboard_item(_("Help"), "help",
+			text_info = self._('Unknown User!')
+			self.add_keyboard_item(self._("Help"), "help",
 								   self.menu_help, True)
 
 		reply_markup = self.compile_keyboard()
@@ -276,26 +282,26 @@ class ZuulMessengerPlugin:
 	def add_follower(self, update, context, new_user):
 
 		self.clear_keyboard()
-		self.add_keyboard_item(_("Lend Key"), "add",
+		self.add_keyboard_item(self._("Lend Key"), "add",
 							   self.add_follower_callback, True)
-		self.add_keyboard_item(_('Main Menu'), "goto_main",
+		self.add_keyboard_item(self._('Main Menu'), "goto_main",
 							   self.menu_main, True)
 		reply_markup = self.compile_keyboard()
 
 		update.message.reply_text(
-			_('Ok to lend the Key to {0} {1}?').format(new_user['first_name'], new_user['last_name']), reply_markup=reply_markup)
+			self._('Ok to lend the Key to {0} {1}?').format(new_user['first_name'], new_user['last_name']), reply_markup=reply_markup)
 
 	def delete_follower(self, update, context, user):
 		'''deletes a user'''
 		self.clear_keyboard()
-		self.add_keyboard_item(_("Bring Back"), self.access_manager.user_id(user),
+		self.add_keyboard_item(self._("Bring Back"), self.access_manager.user_id(user),
 							   self.delete_follower_callback, True)
-		self.add_keyboard_item(_('Main Menu'), "goto_main",
+		self.add_keyboard_item(self._('Main Menu'), "goto_main",
 							   self.menu_main, True)
 		reply_markup = self.compile_keyboard()
 
 		update.message.reply_text(
-			_('Ok to bring back the key from {0} {1}?').format(user['first_name'], user['last_name']), reply_markup=reply_markup)
+			self._('Ok to bring back the key from {0} {1}?').format(user['first_name'], user['last_name']), reply_markup=reply_markup)
 
 	def share_contact(self, update, context):
 		self.current_user = self.access_manager.user_info(self.user(update))
@@ -322,7 +328,7 @@ class ZuulMessengerPlugin:
 
 	def echo(self, update, context):
 		"""Echo the user message."""
-		update.message.reply_text(_("You wrote:")+update.message.text)
+		update.message.reply_text(self._("You wrote:")+update.message.text)
 		print(update.message.text)
 		self.menu_main(update, context, None)
 

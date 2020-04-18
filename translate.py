@@ -6,13 +6,12 @@
 import os
 import gettext
 localedir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'locale')
-# translate = gettext.translation('zuul-ac', localedir, languages=['de'], fallback=True)
+languages={}
+languages['de'] = gettext.translation('zuul-ac', localedir, languages=['de'], fallback=True)
 # _ = translate.gettext
-gettext.install('zuul-ac',localedir)
+#gettext.install('zuul-ac',localedir)
 
-print(_("Main Menu"),"verdammt...",localedir)
-
-def gettext(text):
-	global translate
-	return translate.gettext(text)
-	#return text
+def gettext(text,language='en'):
+	if not language or not language in languages:
+		return text
+	return languages[language].gettext(text)
