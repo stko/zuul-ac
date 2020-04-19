@@ -21,10 +21,11 @@ _ = lambda s: s
 
 logger = zuullogger.getLogger(__name__)
 
-
-
 store = storage.Storage()
-am= accessmanager.AccessManager(store)
+server=webserver.ws_create(store)
+
+am= accessmanager.AccessManager(store,server)
+server.register("ac_",None,am.msg,am.dummy,am.dummy)
 
 messenger_token=store.read_config_value("messenger_token")
 messenger_type=store.read_config_value("messenger_type")
@@ -36,8 +37,6 @@ else:
 	
 
 
-server=webserver.ws_create(store)
-server.register("ac_",None,am.msg,am.dummy,am.dummy)
 webserver.ws_thread(server)
 while(True):
 	time.sleep(1)

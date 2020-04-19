@@ -20,7 +20,7 @@ import json
 from base64 import b64encode
 import argparse
 import time
-	
+
 import threading
 
 from pprint import pprint
@@ -30,16 +30,13 @@ from http.server import HTTPServer
 from io import StringIO
 
 
-
 class User:
 	'''handles all user related data
 	'''
 
-
 	def __init__(self, name, ws):
 		self.name = name
 		self.ws = ws
-
 
 
 modules = {}
@@ -73,18 +70,18 @@ class WSZuulHandler(HTTPWebSocketsHandler):
 		if data['type'] == 'msg':
 			self.log_message('msg %s', data['data'])
 
-
 		else:
 			unknown_msg = True
 			global modules
 			for id, module in modules.items():
+				print("modul test",id,data['type'].lower())
 				if data['type'].lower().startswith(id):
+					print("modul gefunden",id)
 					module["msg"](data, self.user)
 					unknown_msg = False
 			if unknown_msg:
 				self.log_message("Command not found:"+data['type'])
 
-		
 	def on_ws_connected(self):
 		self.log_message('%s', 'websocket connected')
 		self.user = User("", self)
@@ -94,13 +91,12 @@ class WSZuulHandler(HTTPWebSocketsHandler):
 		for module in modules.values():
 			module["onWebSocketOpen"](self.user)
 
-
 	def on_ws_closed(self):
 		self.log_message('%s', 'websocket closed')
 		global ws_clients
 		ws_clients.remove(self.user)
 		global modules
-		#for module in modules.values():
+		# for module in modules.values():
 		for module_name, module in modules.items():
 			module["onWebSocketClose"](self.user)
 
@@ -123,18 +119,22 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 		except:
 			return None
 
+	def emit(self, topic, data):
+		global ws_clients
+		for user in ws_clients:
+			user.ws.emit(topic, data)
+
 
 def ws_create(storage):
 	server_config = storage.read_config_value("server_config")
 	if not server_config:
-		server_config={
-			'host': 'localhost',
+		server_config = {
+			'host': 'any',
 			'port': 8000,
 			'secure': False,
 			'credentials': ''
 		}
-	storage.write_config_value("server_config",server_config)
-
+	storage.write_config_value("server_config", server_config)
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--host", default=server_config["host"],
@@ -173,13 +173,15 @@ def _ws_main(server):
 		print('^C received, shutting down server')
 		server.socket.close()
 
+
 def ws_thread(server):
-		
+
 	# Create a Thread with a function without any arguments
 	th = threading.Thread(target=_ws_main, args=(server,))
 	# Start the thread
-	th.setDaemon(True) 
+	th.setDaemon(True)
 	th.start()
+
 
 if __name__ == '__main__':
 	ws_thread()
