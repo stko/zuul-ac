@@ -4,17 +4,20 @@
 import string
 import secrets
 import datetime
-
+import queue
 
 class AccessManager:
 
-	def __init__(self, store):
+	def __init__(self, store,smart_home_interface):
 		self.store = store
 		self.users = store.get_users()
+		self.queue=queue.Queue()
+		self.smart_home_interface = smart_home_interface
 		self.garbage_collection()
 
 	def msg(self, data, ws_user):
-		print(data["data"]["token"])
+		if data['type']=='ac_otprequest':
+			self.queue.put(data)
 		ws_user.ws.emit("test", data)
 
 	def dummy(self, user):
@@ -193,9 +196,21 @@ class AccessManager:
 	def requestOTP(self, user):
 		''' gets a unique one time password string'''
 
+		with self.queue.mutex:
+			self.queue.queue.clear()
+		self.smart_home_interface.emit("otprequest",user)
+		try:
+			data=self.queue.get(block=True, timeout=2.0)
+			if data['config']['result']==True:
+				valid_time=60
+			else:
+				valid_time=0
+		except:
+			valid_time=0
 		stringLength = 10
+
 		"""Generate a secure random string of letters, digits and special characters """
 		password_characters = string.ascii_letters + string.digits + string.punctuation
 		otp = ''.join(secrets.choice(password_characters)
 					  for i in range(stringLength))
-		return otp, 60
+		return otp, valid_time

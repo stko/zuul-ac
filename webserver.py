@@ -74,9 +74,7 @@ class WSZuulHandler(HTTPWebSocketsHandler):
 			unknown_msg = True
 			global modules
 			for id, module in modules.items():
-				print("modul test",id,data['type'].lower())
 				if data['type'].lower().startswith(id):
-					print("modul gefunden",id)
 					module["msg"](data, self.user)
 					unknown_msg = False
 			if unknown_msg:

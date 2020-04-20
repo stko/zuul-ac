@@ -70,6 +70,7 @@ class ZuulMessengerPlugin:
 
 		if not query.data in self.keyboard_functions:
 			print("ilegal callback_data")
+			self.new_pin(update, context)
 			return None
 		return self.keyboard_functions[query.data](update, context, query)
 
@@ -130,20 +131,25 @@ class ZuulMessengerPlugin:
 			border=4,
 		)
 		otp, timeout = self.access_manager.requestOTP(user)
-		qr.add_data(otp)
-		qr.make(fit=True)
+		if timeout > 0:
+			qr.add_data(otp)
+			qr.make(fit=True)
 
-		img = qr.make_image(fill_color="black", back_color="white")
+			img = qr.make_image(fill_color="black", back_color="white")
 
-		bio = BytesIO()
-		bio.name = 'image.jpeg'
-		img.save(bio, 'PNG')
-		bio.seek(0)
+			bio = BytesIO()
+			bio.name = 'image.jpeg'
+			img.save(bio, 'PNG')
+			bio.seek(0)
 
-		msg.reply_text(
-			self._('This Pin is valid for {0} seconds - Just present it to the door camera to open the door').format(timeout))
-		#update.message.reply_photo( photo= open('qr-code.png', 'rb'))
-		msg.reply_photo(photo=bio)
+			msg.reply_text(
+				self._('This Pin is valid for {0} seconds - Just present it to the door camera to open the door').format(timeout))
+			#update.message.reply_photo( photo= open('qr-code.png', 'rb'))
+			msg.reply_photo(photo=bio)
+		else:
+			msg.reply_text(
+				self._('You won\'t let in just now. Please try again at another time'))
+
 
 	# Define a few command handlers. These usually take the two arguments update and
 	# context. Error handlers also receive the raised TelegramError object in error.
@@ -152,10 +158,14 @@ class ZuulMessengerPlugin:
 		print("simple callback", query.data)
 
 	def select_message_source(self, update, query):
-		if query:
+		if query and query.message:
 			return query.message
 		else:
-			return update.message
+			if update.message:
+				return update.message
+			else:
+				return update.effective_message
+
 
 	def new_pin(self, update, context):
 		"""Send a pin instandly when the command /start is issued."""
@@ -167,8 +177,7 @@ class ZuulMessengerPlugin:
 
 		# known user?
 		self.current_user = self.access_manager.user_info(self.user(update))
-		# demo mode
-		if self.current_user != None or True:
+		if self.current_user != None:
 			self.send_image(update, query)
 		self.menu_main(update, context, query)
 
@@ -264,8 +273,7 @@ class ZuulMessengerPlugin:
 		self.clear_keyboard()
 		# known user?
 		self.current_user = self.access_manager.user_info(self.user(update))
-		# demo mode
-		if self.current_user != None or True:
+		if self.current_user != None:
 			text_info = self._('Main Menu')
 			self.add_keyboard_item(self._("New Pin"), "dummy",
 								   self.menu_new_pin, True)
