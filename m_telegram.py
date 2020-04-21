@@ -124,32 +124,47 @@ class ZuulMessengerPlugin:
 		user = self.user(update)
 		msg = self.select_message_source(update, query)
 
-		qr = qrcode.QRCode(
-			version=1,
-			error_correction=qrcode.constants.ERROR_CORRECT_L,
-			box_size=10,
-			border=4,
-		)
-		otp, timeout = self.access_manager.requestOTP(user)
-		if timeout > 0:
-			qr.add_data(otp)
-			qr.make(fit=True)
+		otp = self.access_manager.requestOTP(user)
+		if otp['valid_time'] > 0:
+			if otp['type'] == 'qrcode':
+				qr = qrcode.QRCode(
+					version=1,
+					error_correction=qrcode.constants.ERROR_CORRECT_L,
+					box_size=10,
+					border=4,
+				)
+				qr.add_data(otp['otp'])
+				qr.make(fit=True)
 
-			img = qr.make_image(fill_color="black", back_color="white")
+				img = qr.make_image(fill_color="black", back_color="white")
 
-			bio = BytesIO()
-			bio.name = 'image.jpeg'
-			img.save(bio, 'PNG')
-			bio.seek(0)
+				bio = BytesIO()
+				bio.name = 'image.jpeg'
+				img.save(bio, 'PNG')
+				bio.seek(0)
+				if otp['msg']:
+					msg_text=otp['msg']
+				else:
+					msg_text='This Pin is valid for {0} seconds - Just present it to the door camera to open the door'
+				msg.reply_text(
+					self._(msg_text).format(otp['valid_time'],otp['otp']))
+				#update.message.reply_photo( photo= open('qr-code.png', 'rb'))
+				msg.reply_photo(photo=bio)
+			else:
+				if otp['msg']:
+					msg_text=otp['msg']
+				else:
+					msg_text='This Pin {1} is valid for {0} seconds'
+				msg.reply_text(
+					self._(msg_text).format(otp['valid_time'],otp['otp']))
 
-			msg.reply_text(
-				self._('This Pin is valid for {0} seconds - Just present it to the door camera to open the door').format(timeout))
-			#update.message.reply_photo( photo= open('qr-code.png', 'rb'))
-			msg.reply_photo(photo=bio)
 		else:
+			if otp['msg']:
+				msg_text=otp['msg']
+			else:
+				msg_text='You won\'t let in just now. Please try again at another time'
 			msg.reply_text(
-				self._('You won\'t let in just now. Please try again at another time'))
-
+				self._(msg_text))
 
 	# Define a few command handlers. These usually take the two arguments update and
 	# context. Error handlers also receive the raised TelegramError object in error.
@@ -165,7 +180,6 @@ class ZuulMessengerPlugin:
 				return update.message
 			else:
 				return update.effective_message
-
 
 	def new_pin(self, update, context):
 		"""Send a pin instandly when the command /start is issued."""
@@ -217,10 +231,14 @@ class ZuulMessengerPlugin:
 			msg.reply_text(self._("Something went wrong"))
 		self.menu_main(update, context, query)
 
+	def delete_follower_by_list_item(self, update, context, query):
+		'''deletes a user'''
+		self.delete_follower( update, context, self.access_manager.user_info_by_id(query.data))
+
 	def list_follower_callback(self, update, context, query):
 		msg = self.select_message_source(update, query)
 		self.last_follower_pos = self.fill_list(
-			query.data, self.access_manager.get_user_list, self.delete_follower_callback, self.list_follower_callback)
+			query.data, self.access_manager.get_user_list, self.delete_follower_by_list_item, self.list_follower_callback)
 		self.add_keyboard_item(self._('Commands'), "menu",
 												   self.menu_menu, True)
 		reply_markup = self.compile_keyboard()
@@ -307,8 +325,11 @@ class ZuulMessengerPlugin:
 		self.add_keyboard_item(self._('Main Menu'), "goto_main",
 							   self.menu_main, True)
 		reply_markup = self.compile_keyboard()
-
-		update.message.reply_text(
+		if update.message:
+			msg=update.message
+		else:
+			msg=update.effective_message
+		msg.reply_text(
 			self._('Ok to bring back the key from {0} {1}?').format(user['first_name'], user['last_name']), reply_markup=reply_markup)
 
 	def share_contact(self, update, context):

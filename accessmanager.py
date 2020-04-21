@@ -5,18 +5,21 @@ import string
 import secrets
 import datetime
 import queue
+from threading import Thread, Lock
+
 
 class AccessManager:
 
-	def __init__(self, store,smart_home_interface):
+	def __init__(self, store, smart_home_interface):
 		self.store = store
+		self.mutex = Lock()
 		self.users = store.get_users()
-		self.queue=queue.Queue()
+		self.queue = queue.Queue()
 		self.smart_home_interface = smart_home_interface
 		self.garbage_collection()
 
 	def msg(self, data, ws_user):
-		if data['type']=='ac_otprequest':
+		if data['type'] == 'ac_otprequest':
 			self.queue.put(data)
 		ws_user.ws.emit("test", data)
 
@@ -51,14 +54,14 @@ class AccessManager:
 		if not current_user["user_id"] in self.users['timetables']:
 			# if not, create a storage for his lend keys
 			'''
-							each user has a set of timeplans, eacch with it's unique id
-							each timeplan has a list[] of users assigned to that time plan
-							The timeplan with the id '1' is the standard simple one without
-							any limitations in times or duration
+											each user has a set of timeplans, eacch with it's unique id
+											each timeplan has a list[] of users assigned to that time plan
+											The timeplan with the id '1' is the standard simple one without
+											any limitations in times or duration
 
-							in the actual version only this dummy time plan is used, just the
-							structures for more complicated time plans are already made now
-							for an eventual later enhancenment
+											in the actual version only this dummy time plan is used, just the
+											structures for more complicated time plans are already made now
+											for an eventual later enhancenment
 			'''
 			self.users['timetables'][current_user["user_id"]] = {
 				'1': {'users': {}, 'deletion_timestamp': None}}
@@ -66,7 +69,6 @@ class AccessManager:
 		self.users['timetables'][current_user["user_id"]
 								 ]['1']['users'][new_user["user_id"]] = None
 		self.garbage_collection()
-		self.store.write_users()
 
 	def get_user_list(self, parent_user, time_table_id='1'):
 		res = []
@@ -132,6 +134,7 @@ class AccessManager:
 		as this might be time consuming, it's placed in a procedure
 		which could be called by a seperate clean-up thread
 		'''
+		self.mutex.acquire()
 		new_user_table = {}
 		# admins are always walid
 		admin_list = self.store.get_admin_ids()
@@ -139,6 +142,7 @@ class AccessManager:
 			new_user_table[admin] = {'user': self.users['users'][admin]
 									 ['user'], 'time_table': self.create_full_time_table()}
 		if not self.users['timetables']:
+			self.mutex.release()
 			return
 		for user_id in self.users['timetables']:
 			for time_table_id in self.users['timetables'][user_id]:
@@ -175,7 +179,10 @@ class AccessManager:
 										new_user_table[user_id]['time_table'], None, new_user_table[follower_id]['time_table'])
 
 		self.users['users'] = new_user_table
-		self.store.write_users()
+		try:
+			self.store.write_users()
+		finally:
+			self.mutex.release()
 
 	def delete_user_by_id(self, current_user, delete_user_id):
 		if current_user["user_id"] in self.users['timetables']:
@@ -198,19 +205,27 @@ class AccessManager:
 
 		with self.queue.mutex:
 			self.queue.queue.clear()
-		self.smart_home_interface.emit("otprequest",user)
-		try:
-			data=self.queue.get(block=True, timeout=2.0)
-			if data['config']['result']==True:
-				valid_time=60
-			else:
-				valid_time=0
-		except:
-			valid_time=0
+		self.smart_home_interface.emit("otprequest", user)
+		valid_time = 0
+		msg_text = ""
+		otp_type = 'qrcode'
 		stringLength = 10
-
 		"""Generate a secure random string of letters, digits and special characters """
 		password_characters = string.ascii_letters + string.digits + string.punctuation
+		try:
+			data = self.queue.get(block=True, timeout=2.0)
+			print(data)
+			if data['config']['result'] == True:
+				valid_time = data['config']['valid_time']
+				msg_text = data['config']['msg']
+				otp_type = data['config']['type']
+				if data['config']['type'] != 'qrcode':
+					password_characters = data['config']['keypadchars']
+			else:
+				msg_text = data['config']['msg']
+		except:
+			pass
+
 		otp = ''.join(secrets.choice(password_characters)
 					  for i in range(stringLength))
-		return otp, valid_time
+		return {'otp': otp, 'valid_time': valid_time, 'msg': msg_text, 'type': otp_type}
