@@ -6,6 +6,7 @@ import secrets
 import datetime
 import queue
 from threading import Thread, Lock
+import defaults
 
 
 class AccessManager:
@@ -17,11 +18,13 @@ class AccessManager:
 		self.queue = queue.Queue()
 		self.smart_home_interface = smart_home_interface
 		self.garbage_collection()
+		self.current_tokens={}
 
 	def msg(self, data, ws_user):
 		if data['type'] == 'ac_otprequest':
 			self.queue.put(data)
-		ws_user.ws.emit("test", data)
+		if data['type'] == 'ac_tokenquery':
+			ws_user.ws.emit("tokenstate", {'valid':self.validate_token(data['config']['token'])})
 
 	def dummy(self, user):
 		pass
@@ -70,16 +73,26 @@ class AccessManager:
 								 ]['1']['users'][new_user["user_id"]] = None
 		self.garbage_collection()
 
-	def get_user_list(self, parent_user, time_table_id='1'):
+	def get_follower_list(self, sponsor_user, time_table_id='1'):
 		res = []
-		if parent_user["user_id"] in self.users['timetables']:
+		if sponsor_user["user_id"] in self.users['timetables']:
 			# for later enhancements. Actual there's only the standard id '1'
-			for follower_id in self.users['timetables'][parent_user["user_id"]][time_table_id]['users']:
+			for follower_id in self.users['timetables'][sponsor_user["user_id"]][time_table_id]['users']:
 				# if a deletion date is not already set
-				if not self.users['timetables'][parent_user["user_id"]][time_table_id]['users'][follower_id]:
-					res.append({'text': self.users['users'][follower_id]['user']['first_name'],
-								"user_id": self.users['users'][follower_id]['user']["user_id"]})
+				if not self.users['timetables'][sponsor_user["user_id"]][time_table_id]['users'][follower_id]:
+					res.append({'text': self.users['users'][follower_id]['user']['first_name']+' '+self.users['users'][follower_id]['user']['last_name'],
+								"user_id": follower_id})
+		return res
 
+	def get_sponsor_list(self, follower_user, time_table_id='1'):
+		res = []
+		follower_id=follower_user["user_id"]
+		for sponsor_user_id in self.users['timetables']:
+			for time_table in self.users['timetables'][sponsor_user_id].values():
+				# important: users can also return keys out of inactive time tables, so we don't check if the table is active
+				if follower_id in time_table['users'] and not time_table['users'][follower_id]: # no deletion date set
+					res.append({'text': self.users['users'][sponsor_user_id]['user']['first_name']+' '+self.users['users'][sponsor_user_id]['user']['last_name'],
+								"user_id": sponsor_user_id})
 		return res
 
 	def get_unix_timestamp(self):
@@ -93,8 +106,8 @@ class AccessManager:
 		# as time tables are not implemented yet, we check only the deletion data
 
 		if time_table["deletion_timestamp"]:
-			# older as 30 days
-			if time_table["deletion_timestamp"] < self.get_unix_timestamp - 60 * 60 * 24 * 30:
+			# older as  defaults.DELETE_AFTER_DAYS days
+			if time_table["deletion_timestamp"] < self.get_unix_timestamp - 60 * 60 * 24 * defaults.DELETE_AFTER_DAYS:
 				return False
 		return True
 
@@ -102,27 +115,27 @@ class AccessManager:
 		''' helper routine to create a full packet time table for the admins'''
 		res = []
 		ttl = self.store.read_config_value('timetolive', 5)
-		for i in range(7*24*2):  # for each half hour of the next week
+		for i in range(defaults.TIME_TABLE_SIZE):  # for each entry slot
 			res.append(ttl)
 		return res
 
-	def calculate_follower_time_table(self, parent_table, ruleset, follower_table):
+	def calculate_follower_time_table(self, sponsor_table, ruleset, follower_table):
 		if not follower_table:  # no table yet?
 			follower_table = []
-			for i in range(7*24*2):  # for each half hour of the next week
+			for i in range(defaults.TIME_TABLE_SIZE):  # for each entry slot
 				follower_table.append(-1)  # per default nothing allowed
 
 		# create ruleset mask
 		# just a dummy for now, creates a fully packed ruleset
 		ruleset_table = []
-		for i in range(7*24*2):  # for each half hour of the next week
+		for i in range(defaults.TIME_TABLE_SIZE):  # foreach entry slot
 			ruleset_table.append(True)  # per default all set
 
-		for i in range(7*24*2):  # for each half hour of the next week
+		for i in range(defaults.TIME_TABLE_SIZE):  # for each entry slot
 			if ruleset_table[i]:  # if the ruleset allows access, then
-				parent_ttl = parent_table[i]
-				if parent_ttl > 0:
-					new_ttl = parent_ttl-1  # we reduce the ttl by 1
+				sponsor_ttl = sponsor_table[i]
+				if sponsor_ttl > 0:
+					new_ttl = sponsor_ttl-1  # we reduce the ttl by 1
 					# does the new ttl improve the depth level?
 					if follower_table[i] < new_ttl:
 						follower_table[i] = new_ttl
@@ -155,7 +168,7 @@ class AccessManager:
 							new_user_table[follower_id] = {
 								'user': self.users['users'][follower_id]['user'], 'time_table': None}
 		'''and now we calculate the allowance, starting with the admin users and repeating the loop,
-		until all valid users have got their time table derivated from their parents
+		until all valid users have got their time table derivated from their sponsors
 
 		That might give a faulty result in the rare case that two users have invited each other cross-over.
 		might this give a faulty time table?
@@ -210,6 +223,7 @@ class AccessManager:
 		msg_text = ""
 		otp_type = 'qrcode'
 		stringLength = 10
+		otp=''
 		"""Generate a secure random string of letters, digits and special characters """
 		password_characters = string.ascii_letters + string.digits + string.punctuation
 		try:
@@ -221,11 +235,30 @@ class AccessManager:
 				otp_type = data['config']['type']
 				if data['config']['type'] != 'qrcode':
 					password_characters = data['config']['keypadchars']
+				otp = ''.join(secrets.choice(password_characters)
+							for i in range(stringLength))
+				self.current_tokens[otp]=datetime.datetime.now().timestamp()+valid_time # store, until when the token shall be valid
 			else:
 				msg_text = data['config']['msg']
 		except:
 			pass
 
-		otp = ''.join(secrets.choice(password_characters)
-					  for i in range(stringLength))
 		return {'otp': otp, 'valid_time': valid_time, 'msg': msg_text, 'type': otp_type}
+
+	def validate_token(self,token):
+		#first delete any old left-over
+		print('token:',token)
+		to_del=[]
+		now=datetime.datetime.now().timestamp()
+		for old_token, timestp in self.current_tokens.items():
+			if timestp + 5 * 60 < now: # is the token expired more as 5 mins ago?
+				to_del.append(old_token)
+		for old_token in to_del:
+			del(self.current_tokens[old_token])
+		if not token in self.current_tokens:
+			return False
+		timestp=self.current_tokens[token]
+		if timestp  < now: # is the token expired already?
+			return False
+		return True
+		

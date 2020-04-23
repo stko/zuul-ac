@@ -116,7 +116,8 @@ class ZuulMessengerPlugin:
 	def user(self, update):
 		'''filters the user data out of the update object'''
 		chat_user = update.effective_user
-		print("user name:", chat_user.last_name)
+		print("user name:{0} {1}".format(
+			chat_user.first_name, chat_user.last_name))
 		return User(chat_user.first_name, chat_user.last_name, chat_user.id, chat_user.
 					language_code)
 
@@ -143,26 +144,26 @@ class ZuulMessengerPlugin:
 				img.save(bio, 'PNG')
 				bio.seek(0)
 				if otp['msg']:
-					msg_text=otp['msg']
+					msg_text = otp['msg']
 				else:
-					msg_text='This Pin is valid for {0} seconds - Just present it to the door camera to open the door'
+					msg_text = 'This Pin is valid for {0} seconds - Just present it to the door camera to open the door'
 				msg.reply_text(
-					self._(msg_text).format(otp['valid_time'],otp['otp']))
+					self._(msg_text).format(otp['valid_time'], otp['otp']))
 				#update.message.reply_photo( photo= open('qr-code.png', 'rb'))
 				msg.reply_photo(photo=bio)
 			else:
 				if otp['msg']:
-					msg_text=otp['msg']
+					msg_text = otp['msg']
 				else:
-					msg_text='This Pin {1} is valid for {0} seconds'
+					msg_text = 'This Pin {1} is valid for {0} seconds'
 				msg.reply_text(
-					self._(msg_text).format(otp['valid_time'],otp['otp']))
+					self._(msg_text).format(otp['valid_time'], otp['otp']))
 
 		else:
 			if otp['msg']:
-				msg_text=otp['msg']
+				msg_text = otp['msg']
 			else:
-				msg_text='You won\'t let in just now. Please try again at another time'
+				msg_text = 'You won\'t let in just now. Please try again at another time'
 			msg.reply_text(
 				self._(msg_text))
 
@@ -231,16 +232,45 @@ class ZuulMessengerPlugin:
 			msg.reply_text(self._("Something went wrong"))
 		self.menu_main(update, context, query)
 
+	def delete_sponsor_callback(self, update, context, query):
+		'''deletes a sponsor'''
+		msg = self.select_message_source(update, query)
+		delete_user = self.access_manager.user_info_by_id(query.data)
+		if delete_user and self.current_user:
+			self.access_manager.delete_user_by_id(
+				query.data, self.current_user )
+			msg.reply_text(self._('Key returned to {0} {1}').format(
+				delete_user['first_name'], delete_user['last_name']))
+		else:
+			msg.reply_text(self._("Something went wrong"))
+		self.menu_main(update, context, query)
+
 	def delete_follower_by_list_item(self, update, context, query):
 		'''deletes a user'''
-		self.delete_follower( update, context, self.access_manager.user_info_by_id(query.data))
+		self.delete_follower(
+			update, context, self.access_manager.user_info_by_id(query.data))
+
+	def delete_sponsor_by_list_item(self, update, context, query):
+		'''deletes a sponsor'''
+		self.delete_sponsor(
+			update, context, self.access_manager.user_info_by_id(query.data))
 
 	def list_follower_callback(self, update, context, query):
 		msg = self.select_message_source(update, query)
 		self.last_follower_pos = self.fill_list(
-			query.data, self.access_manager.get_user_list, self.delete_follower_by_list_item, self.list_follower_callback)
+			query.data, self.access_manager.get_follower_list, self.delete_follower_by_list_item, self.list_follower_callback)
 		self.add_keyboard_item(self._('Commands'), "menu",
-												   self.menu_menu, True)
+							   self.menu_menu, True)
+		reply_markup = self.compile_keyboard()
+		msg.reply_text(self._('Choose the Key to get back'),
+					   reply_markup=reply_markup)
+
+	def list_sponsor_callback(self, update, context, query):
+		msg = self.select_message_source(update, query)
+		self.last_follower_pos = self.fill_list(
+			query.data, self.access_manager.get_sponsor_list, self.delete_sponsor_by_list_item, self.list_sponsor_callback)
+		self.add_keyboard_item(self._('Commands'), "menu",
+							   self.menu_menu, True)
 		reply_markup = self.compile_keyboard()
 		msg.reply_text(self._('Choose the Key to get back'),
 					   reply_markup=reply_markup)
@@ -248,6 +278,8 @@ class ZuulMessengerPlugin:
 	def fill_list(self, last_pos, get_list, item_callback, list_callback):
 		self.clear_keyboard()
 		last_pos = int(last_pos)
+		if last_pos<0: # a dirty trick, as we can't start all lists with the same starting index 0, as that crashes in the virtual keyboard generation, when all keyboard buttons would have the same index...
+			last_pos=0 
 		items_per_page = 5
 		item_list = get_list(self.current_user)
 		list_len = len(item_list)
@@ -275,10 +307,10 @@ class ZuulMessengerPlugin:
 	def menu_menu(self, update, context, query):
 		msg = self.select_message_source(update, query)
 		self.clear_keyboard()
-		self.add_keyboard_item(self._("Get lend Keys back"), "0",
+		self.add_keyboard_item(self._("Get lend Keys back"), "-1", # the minus -1 is to make the index unique
 							   self.list_follower_callback, True)
-		self.add_keyboard_item(self._("Return borrowed Keys"), "mykeys",
-							   self.simple_keyboard_callback, True)
+		self.add_keyboard_item(self._("Return borrowed Keys"), "-2",# the minus -2 is to make the index unique
+							   self.list_sponsor_callback, True)
 		self.add_keyboard_item(self._("Help"), "help",
 							   self.menu_help, True)
 		self.add_keyboard_item(self._("Main Menu"), "goto_main",
@@ -296,7 +328,7 @@ class ZuulMessengerPlugin:
 			self.add_keyboard_item(self._("New Pin"), "dummy",
 								   self.menu_new_pin, True)
 			self.add_keyboard_item(self._("Commands"), "menu",
-													   self.menu_menu, True)
+								   self.menu_menu, True)
 		else:
 			text_info = self._('Unknown User!')
 			self.add_keyboard_item(self._("Help"), "help",
@@ -309,7 +341,7 @@ class ZuulMessengerPlugin:
 
 		self.clear_keyboard()
 		self.add_keyboard_item(self._("Lend Key"), "add",
-												   self.add_follower_callback, True)
+							   self.add_follower_callback, True)
 		self.add_keyboard_item(self._('Main Menu'), "goto_main",
 							   self.menu_main, True)
 		reply_markup = self.compile_keyboard()
@@ -326,11 +358,26 @@ class ZuulMessengerPlugin:
 							   self.menu_main, True)
 		reply_markup = self.compile_keyboard()
 		if update.message:
-			msg=update.message
+			msg = update.message
 		else:
-			msg=update.effective_message
+			msg = update.effective_message
 		msg.reply_text(
 			self._('Ok to bring back the key from {0} {1}?').format(user['first_name'], user['last_name']), reply_markup=reply_markup)
+
+	def delete_sponsor(self, update, context, user):
+		'''deletes a sponsor'''
+		self.clear_keyboard()
+		self.add_keyboard_item(self._("return"), self.access_manager.user_id(user),
+							   self.delete_sponsor_callback, True)
+		self.add_keyboard_item(self._('Main Menu'), "goto_main",
+							   self.menu_main, True)
+		reply_markup = self.compile_keyboard()
+		if update.message:
+			msg = update.message
+		else:
+			msg = update.effective_message
+		msg.reply_text(
+			self._('Ok to return the key to {0} {1}?').format(user['first_name'], user['last_name']), reply_markup=reply_markup)
 
 	def share_contact(self, update, context):
 		self.current_user = self.access_manager.user_info(self.user(update))
