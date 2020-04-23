@@ -43,7 +43,7 @@
 		for (var user_id in data.config.users){
 			console.log(user_id)
 			var li = document.createElement("li");
-			var user_info=data.config.users[user_id].user.first_name+' '+data.config.users[user_id].user.last_name+" ("+user_id+")"
+			var user_info=data.config.users[user_id].user.first_name+' '+data.config.users[user_id].user.last_name+" ("+user_id+") <"+data.config.users[user_id].time_table[0]+">"
 			li.appendChild(document.createTextNode(user_info));
 			users.appendChild(li);
 		}
