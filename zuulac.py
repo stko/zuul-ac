@@ -26,6 +26,7 @@ server=webserver.ws_create(store)
 
 am= accessmanager.AccessManager(store,server)
 server.register("ac_",None,am.msg,am.dummy,am.dummy)
+server.register("st_",None,store.msg,store.dummy,store.dummy)
 
 messenger_token=store.read_config_value("messenger_token")
 messenger_type=store.read_config_value("messenger_type")

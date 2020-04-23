@@ -35,7 +35,15 @@ class Storage:
 		# copy admin acounts into the user list, if not already in
 		for admin in self.get_admin_ids():
 			if not admin in self.users['users']:
-				self.users['users'][admin]={'user':user.User('Alice','Admin',admin,'en')}
+				self.users['users'][admin]={'user':user.User('Alice','Admin', admin,'en')}
+
+	def msg(self, data, ws_user):
+		if data['type'] == 'st_tree':
+			ws_user.ws.emit("tree", self.users)
+
+	def dummy(self, user):
+		pass
+
 
 	def read_config_value(self,key,default=None):
 		''' read value from config, identified by key
