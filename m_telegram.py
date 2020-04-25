@@ -211,7 +211,11 @@ class ZuulMessengerPlugin:
 		'''adds a new user'''
 		msg = self.select_message_source(update, query)
 		if self.new_contact and self.current_user:
-			self.access_manager.add_user(self.current_user, self.new_contact)
+			changed_users = self.access_manager.add_user(
+				self.current_user, self.new_contact)
+			for user in changed_users:
+				#context.bot.send_message(chat_id=user['user_id'], text=self._("You got a key. You can open the door now"))
+				context.bot.send_message(chat_id='1137173018', text=self._("You got a key. You can open the door now"))
 			msg.reply_text(self._('Key lend to {0} {1}').format(
 				self.new_contact['first_name'], self.new_contact['last_name']))
 		else:
@@ -224,8 +228,12 @@ class ZuulMessengerPlugin:
 		msg = self.select_message_source(update, query)
 		delete_user = self.access_manager.user_info_by_id(query.data)
 		if delete_user and self.current_user:
-			self.access_manager.delete_user_by_id(
+			changed_users=self.access_manager.delete_user_by_id(
 				self.current_user, query.data)
+			for user in changed_users:
+				#context.bot.send_message(chat_id=user['user_id'], text=self._("Your key was revoked. You can not open the door anymore"))
+				context.bot.send_message(chat_id='1137173018', text=self._("Your key was revoked. You can not open the door anymore"))
+
 			msg.reply_text(self._('Key brought back from {0} {1}').format(
 				delete_user['first_name'], delete_user['last_name']))
 		else:
@@ -238,7 +246,7 @@ class ZuulMessengerPlugin:
 		delete_user = self.access_manager.user_info_by_id(query.data)
 		if delete_user and self.current_user:
 			self.access_manager.delete_user_by_id(
-				query.data, self.current_user )
+				query.data, self.current_user)
 			msg.reply_text(self._('Key returned to {0} {1}').format(
 				delete_user['first_name'], delete_user['last_name']))
 		else:
@@ -260,7 +268,7 @@ class ZuulMessengerPlugin:
 		self.last_follower_pos = self.fill_list(
 			query.data, self.access_manager.get_follower_list, self.delete_follower_by_list_item, self.list_follower_callback)
 		self.add_keyboard_item(self._('Commands'), "menu",
-							   self.menu_menu, True)
+												   self.menu_menu, True)
 		reply_markup = self.compile_keyboard()
 		msg.reply_text(self._('Choose the Key to get back'),
 					   reply_markup=reply_markup)
@@ -270,7 +278,7 @@ class ZuulMessengerPlugin:
 		self.last_follower_pos = self.fill_list(
 			query.data, self.access_manager.get_sponsor_list, self.delete_sponsor_by_list_item, self.list_sponsor_callback)
 		self.add_keyboard_item(self._('Commands'), "menu",
-							   self.menu_menu, True)
+												   self.menu_menu, True)
 		reply_markup = self.compile_keyboard()
 		msg.reply_text(self._('Choose the Key to get back'),
 					   reply_markup=reply_markup)
@@ -278,8 +286,8 @@ class ZuulMessengerPlugin:
 	def fill_list(self, last_pos, get_list, item_callback, list_callback):
 		self.clear_keyboard()
 		last_pos = int(last_pos)
-		if last_pos<0: # a dirty trick, as we can't start all lists with the same starting index 0, as that crashes in the virtual keyboard generation, when all keyboard buttons would have the same index...
-			last_pos=0 
+		if last_pos < 0:  # a dirty trick, as we can't start all lists with the same starting index 0, as that crashes in the virtual keyboard generation, when all keyboard buttons would have the same index...
+			last_pos = 0
 		items_per_page = 5
 		item_list = get_list(self.current_user)
 		list_len = len(item_list)
@@ -307,9 +315,9 @@ class ZuulMessengerPlugin:
 	def menu_menu(self, update, context, query):
 		msg = self.select_message_source(update, query)
 		self.clear_keyboard()
-		self.add_keyboard_item(self._("Get lend Keys back"), "-1", # the minus -1 is to make the index unique
+		self.add_keyboard_item(self._("Get lend Keys back"), "-1",  # the minus -1 is to make the index unique
 							   self.list_follower_callback, True)
-		self.add_keyboard_item(self._("Return borrowed Keys"), "-2",# the minus -2 is to make the index unique
+		self.add_keyboard_item(self._("Return borrowed Keys"), "-2",  # the minus -2 is to make the index unique
 							   self.list_sponsor_callback, True)
 		self.add_keyboard_item(self._("Help"), "help",
 							   self.menu_help, True)
@@ -328,7 +336,7 @@ class ZuulMessengerPlugin:
 			self.add_keyboard_item(self._("New Pin"), "dummy",
 								   self.menu_new_pin, True)
 			self.add_keyboard_item(self._("Commands"), "menu",
-								   self.menu_menu, True)
+													   self.menu_menu, True)
 		else:
 			text_info = self._('Unknown User!')
 			self.add_keyboard_item(self._("Help"), "help",
@@ -341,7 +349,7 @@ class ZuulMessengerPlugin:
 
 		self.clear_keyboard()
 		self.add_keyboard_item(self._("Lend Key"), "add",
-							   self.add_follower_callback, True)
+												   self.add_follower_callback, True)
 		self.add_keyboard_item(self._('Main Menu'), "goto_main",
 							   self.menu_main, True)
 		reply_markup = self.compile_keyboard()
@@ -380,6 +388,10 @@ class ZuulMessengerPlugin:
 			self._('Ok to return the key to {0} {1}?').format(user['first_name'], user['last_name']), reply_markup=reply_markup)
 
 	def share_contact(self, update, context):
+		if update.message:
+			msg = update.message
+		else:
+			msg = update.effective_message
 		self.current_user = self.access_manager.user_info(self.user(update))
 
 		"""Checks, if a shared contact already exists"""
@@ -387,12 +399,15 @@ class ZuulMessengerPlugin:
 								update.message.contact.user_id, None)  # contacts don't have language codes
 		user_info = self.access_manager.user_info(self.new_contact)
 		if user_info != None:
-			if self.access_manager.is_user_active(self.current_user, self.new_contact):
+			if self.access_manager.user_is_active(self.current_user, self.new_contact):
 				self.delete_follower(update, context, user_info)
-			else:
-				self.add_follower(update, context, self.new_contact)
-		else:
+				return
+		if self.access_manager.user_can_lend(self.current_user):
 			self.add_follower(update, context, self.new_contact)
+		else:
+			msg.reply_text(	self._('You can not lend your key further'))
+
+
 
 	def button(self, update, context):
 		query = update.callback_query

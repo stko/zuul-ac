@@ -17,14 +17,15 @@ class AccessManager:
 		self.users = store.get_users()
 		self.queue = queue.Queue()
 		self.smart_home_interface = smart_home_interface
-		self.garbage_collection()
-		self.current_tokens={}
+		self.garbage_collection(self.users['users'].copy())
+		self.current_tokens = {}
 
 	def msg(self, data, ws_user):
 		if data['type'] == 'ac_otprequest':
 			self.queue.put(data)
 		if data['type'] == 'ac_tokenquery':
-			ws_user.ws.emit("tokenstate", {'valid':self.validate_token(data['config']['token'])})
+			ws_user.ws.emit(
+				"tokenstate", {'valid': self.validate_token(data['config']['token'])})
 
 	def dummy(self, user):
 		pass
@@ -40,7 +41,7 @@ class AccessManager:
 	def user_id(self, user):
 		return user["user_id"]
 
-	def is_user_active(self, current_user, active_user, time_table_id='1'):
+	def user_is_active(self, current_user, active_user, time_table_id='1'):
 		''' returns true if the user has no deletion time set'''
 		# does the current user already have lend some keys?
 		if not current_user["user_id"] in self.users['timetables']:
@@ -49,29 +50,37 @@ class AccessManager:
 			return False
 		return self.users['timetables'][current_user["user_id"]][time_table_id]['users'][active_user["user_id"]] == None
 
+	def user_can_lend(self, user):
+		''' returns true if the user is allowed to lend his key further'''
+		for depth in self.users['users'][user["user_id"]]['time_table']:
+			if depth > 0:
+				return True
+		return False
+
 	def add_user(self, current_user, new_user):
 		'''Add a new user to the database'''
+		old_user_table = self.users['users'].copy()
 		self.users['users'][new_user["user_id"]] = {
 			'user': new_user, 'time_table': None}
 		# does the current user already have lend some keys?
 		if not current_user["user_id"] in self.users['timetables']:
 			# if not, create a storage for his lend keys
 			'''
-											each user has a set of timeplans, eacch with it's unique id
-											each timeplan has a list[] of users assigned to that time plan
-											The timeplan with the id '1' is the standard simple one without
-											any limitations in times or duration
+			each user has a set of timeplans, eacch with it's unique id
+			each timeplan has a list[] of users assigned to that time plan
+			The timeplan with the id '1' is the standard simple one without
+			any limitations in times or duration
 
-											in the actual version only this dummy time plan is used, just the
-											structures for more complicated time plans are already made now
-											for an eventual later enhancenment
+			in the actual version only this dummy time plan is used, just the
+			structures for more complicated time plans are already made now
+			for an eventual later enhancenment
 			'''
 			self.users['timetables'][current_user["user_id"]] = {
 				'1': {'users': {}, 'deletion_timestamp': None}}
 		# set the deletion date to None
 		self.users['timetables'][current_user["user_id"]
 								 ]['1']['users'][new_user["user_id"]] = None
-		self.garbage_collection()
+		return self.garbage_collection(old_user_table)
 
 	def get_follower_list(self, sponsor_user, time_table_id='1'):
 		res = []
@@ -86,11 +95,12 @@ class AccessManager:
 
 	def get_sponsor_list(self, follower_user, time_table_id='1'):
 		res = []
-		follower_id=follower_user["user_id"]
+		follower_id = follower_user["user_id"]
 		for sponsor_user_id in self.users['timetables']:
 			for time_table in self.users['timetables'][sponsor_user_id].values():
 				# important: users can also return keys out of inactive time tables, so we don't check if the table is active
-				if follower_id in time_table['users'] and not time_table['users'][follower_id]: # no deletion date set
+				# no deletion date set
+				if follower_id in time_table['users'] and not time_table['users'][follower_id]:
 					res.append({'text': self.users['users'][sponsor_user_id]['user']['first_name']+' '+self.users['users'][sponsor_user_id]['user']['last_name'],
 								"user_id": sponsor_user_id})
 		return res
@@ -141,7 +151,7 @@ class AccessManager:
 						follower_table[i] = new_ttl
 		return follower_table
 
-	def garbage_collection(self):
+	def garbage_collection(self, old_user_table):
 		''' cleans up user and time plan tables
 
 		as this might be time consuming, it's placed in a procedure
@@ -192,10 +202,18 @@ class AccessManager:
 										new_user_table[user_id]['time_table'], None, new_user_table[follower_id]['time_table'])
 
 		self.users['users'] = new_user_table
+		delta_users = []
+		for user_id, user in new_user_table.items():
+			if not user_id in old_user_table:
+				delta_users.append(user)
+		for user_id, user in old_user_table.items():
+			if not user_id in new_user_table:
+				delta_users.append(user)
 		try:
 			self.store.write_users()
 		finally:
 			self.mutex.release()
+		return delta_users
 
 	def delete_user_by_id(self, current_user, delete_user_id):
 		if current_user["user_id"] in self.users['timetables']:
@@ -206,7 +224,7 @@ class AccessManager:
 					if not self.users['timetables'][current_user["user_id"]][id]['users'][delete_user_id]:
 						self.users['timetables'][current_user["user_id"]
 												 ][id]['users'][delete_user_id] = self.get_unix_timestamp()
-		self.garbage_collection()
+		return self.garbage_collection(self.users['users'].copy())
 
 	def user_info_by_id(self, user_id):
 		if not user_id in self.users['users']:
@@ -223,7 +241,7 @@ class AccessManager:
 		msg_text = ""
 		otp_type = 'qrcode'
 		stringLength = 10
-		otp=''
+		otp = ''
 		"""Generate a secure random string of letters, digits and special characters """
 		password_characters = string.ascii_letters + string.digits + string.punctuation
 		try:
@@ -236,8 +254,9 @@ class AccessManager:
 				if data['config']['type'] != 'qrcode':
 					password_characters = data['config']['keypadchars']
 				otp = ''.join(secrets.choice(password_characters)
-							for i in range(stringLength))
-				self.current_tokens[otp]=datetime.datetime.now().timestamp()+valid_time # store, until when the token shall be valid
+							  for i in range(stringLength))
+				self.current_tokens[otp] = datetime.datetime.now().timestamp(
+				)+valid_time  # store, until when the token shall be valid
 			else:
 				msg_text = data['config']['msg']
 		except:
@@ -245,20 +264,19 @@ class AccessManager:
 
 		return {'otp': otp, 'valid_time': valid_time, 'msg': msg_text, 'type': otp_type}
 
-	def validate_token(self,token):
-		#first delete any old left-over
-		print('token:',token)
-		to_del=[]
-		now=datetime.datetime.now().timestamp()
+	def validate_token(self, token):
+		# first delete any old left-over
+		print('token:', token)
+		to_del = []
+		now = datetime.datetime.now().timestamp()
 		for old_token, timestp in self.current_tokens.items():
-			if timestp + 5 * 60 < now: # is the token expired more as 5 mins ago?
+			if timestp + 5 * 60 < now:  # is the token expired more as 5 mins ago?
 				to_del.append(old_token)
 		for old_token in to_del:
 			del(self.current_tokens[old_token])
 		if not token in self.current_tokens:
 			return False
-		timestp=self.current_tokens[token]
-		if timestp  < now: # is the token expired already?
+		timestp = self.current_tokens[token]
+		if timestp < now:  # is the token expired already?
 			return False
 		return True
-		
