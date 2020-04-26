@@ -27,6 +27,8 @@ class Messenger(object):
 	def run_thread(self):
 		self.messenger=self.my_messenger_class(self.messenger_token,self.access_manager)
 
+	def shutdown(self):
+		self.messenger.shutdown()
 
 
 if __name__ == '__main__':

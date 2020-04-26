@@ -1,97 +1,158 @@
 <!DOCTYPE html>
-<meta charset="utf-8" />
-<title>Zuul-AC User data</title>
-<script language="javascript" type="text/javascript">
-	let ws_protocol = "ws://"
-	if (window.location.protocol == "https:") {
-		ws_protocol = "wss://"
-	}
-	var wsUri = ws_protocol + window.location.hostname + ":" + window.location.port
-	var output;
-	var users;
-	var timetables;
+<html>
 
-	function init() {
-		users = document.getElementById("users");
-		timetables = document.getElementById("timetables");
-		output = document.getElementById("output");
-		testWebSocket();
-	}
-
-	function testWebSocket() {
-		websocket = new WebSocket(wsUri);
-		websocket.onopen = function (evt) { onOpen(evt) };
-		websocket.onclose = function (evt) { onClose(evt) };
-		websocket.onmessage = function (evt) { onMessage(evt) };
-		websocket.onerror = function (evt) { onError(evt) };
-	}
-
-	function onOpen(evt) {
-		writeToScreen("CONNECTED");
-		doSend('{"type":"st_tree","config":""}');
-	}
-
-	function onClose(evt) {
-		writeToScreen("DISCONNECTED");
-	}
-
-	function onMessage(evt) {
-		var data = JSON.parse(evt.data)
-		writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data + '</span>');
-		websocket.close();
-		console.log(data)
-		for (var user_id in data.config.users){
-			console.log(user_id)
-			var li = document.createElement("li");
-			var user_info=data.config.users[user_id].user.first_name+' '+data.config.users[user_id].user.last_name+" ("+user_id+") <"+data.config.users[user_id].time_table[0]+">"
-			li.appendChild(document.createTextNode(user_info));
-			users.appendChild(li);
+<head>
+	<meta charset="utf-8" />
+	<title>Zuul-AC User data</title>
+	<script language="javascript" type="text/javascript">
+		let ws_protocol = "ws://"
+		if (window.location.protocol == "https:") {
+			ws_protocol = "wss://"
 		}
-		var ul = document.createElement("ul");
-		for (var user_id in data.config.timetables){
-			console.log(user_id)
-			var li = document.createElement("li");
-			var user_info=data.config.users[user_id].user.first_name+' '+data.config.users[user_id].user.last_name+" ("+user_id+") ["+data.config.timetables[user_id]["1"].deletion_timestamp+"]"
-			li.appendChild(document.createTextNode(user_info));
-			var sub_ul = document.createElement("ul");
-			for (var follower_id in data.config.timetables[user_id]["1"].users){
-				var sub_li = document.createElement("li");
-				if (data.config.users[follower_id]){
-					user_info=data.config.users[follower_id].user.first_name+' '+data.config.users[follower_id].user.last_name+" ("+follower_id+") ["+data.config.timetables[user_id]["1"].users[follower_id]+"]"
-				}else{
-					user_info="("+follower_id+") ["+data.config.timetables[user_id]["1"].users[follower_id]+"]"
+		var wsUri = ws_protocol + window.location.hostname + ":" + window.location.port
+		var output;
+		var users;
+		var timetables;
+
+		function init() {
+			users = document.getElementById("users");
+			timetables = document.getElementById("timetables");
+			output = document.getElementById("output");
+			testWebSocket();
+		}
+
+		function testWebSocket() {
+			websocket = new WebSocket(wsUri);
+			websocket.onopen = function (evt) { onOpen(evt) };
+			websocket.onclose = function (evt) { onClose(evt) };
+			websocket.onmessage = function (evt) { onMessage(evt) };
+			websocket.onerror = function (evt) { onError(evt) };
+		}
+
+		function onOpen(evt) {
+			writeToScreen("CONNECTED");
+			doSend("st_tree", "");
+		}
+
+		function onClose(evt) {
+			writeToScreen("DISCONNECTED");
+		}
+
+		function onMessage(evt) {
+			var data = JSON.parse(evt.data)
+			writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data + '</span>');
+			//websocket.close();
+			console.log(data)
+			if (data.type=="tree"){
+				editor.setValue(data.config.config_data)
+				user_data=data.config.user_data
+				for (var user_id in user_data.users) {
+					console.log(user_id)
+					var li = document.createElement("li");
+					var user_info = user_data.users[user_id].user.first_name + ' ' + user_data.users[user_id].user.last_name + " (" + user_id + ") <" + user_data.users[user_id].time_table[0] + ">"
+					li.appendChild(document.createTextNode(user_info));
+					users.appendChild(li);
 				}
-				sub_li.appendChild(document.createTextNode(user_info));
-				sub_ul.appendChild(sub_li);
+				var ul = document.createElement("ul");
+				for (var user_id in user_data.timetables) {
+					console.log(user_id)
+					var li = document.createElement("li");
+					var user_info = user_data.users[user_id].user.first_name + ' ' + user_data.users[user_id].user.last_name + " (" + user_id + ") [" + user_data.timetables[user_id]["1"].deletion_timestamp + "]"
+					li.appendChild(document.createTextNode(user_info));
+					var sub_ul = document.createElement("ul");
+					for (var follower_id in user_data.timetables[user_id]["1"].users) {
+						var sub_li = document.createElement("li");
+						if (user_data.users[follower_id]) {
+							user_info = user_data.users[follower_id].user.first_name + ' ' + user_data.users[follower_id].user.last_name + " (" + follower_id + ") [" + user_data.timetables[user_id]["1"].users[follower_id] + "]"
+						} else {
+							user_info = "(" + follower_id + ") [" + user_data.timetables[user_id]["1"].users[follower_id] + "]"
+						}
+						sub_li.appendChild(document.createTextNode(user_info));
+						sub_ul.appendChild(sub_li);
+					}
+					li.appendChild(sub_ul);
+					ul.appendChild(li);
+				}
+				timetables.appendChild(ul);
 			}
-			li.appendChild(sub_ul);
-			ul.appendChild(li);
 		}
-		timetables.appendChild(ul);
-	}
 
-	function onError(evt) {
-		writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);
-	}
+		function onError(evt) {
+			writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);
+		}
 
-	function doSend(message) {
-		//writeToScreen("SENT: " + message);
-		websocket.send(message);
-	}
+		function doSend(type, data) {
+			//writeToScreen("SENT: " + message);
+			message = JSON.stringify({ "type": type, "config": data })
+			websocket.send(message);
+		}
 
-	function writeToScreen(message) {
-		var pre = document.createElement("p");
-		pre.style.wordWrap = "break-word";
-		pre.innerHTML = message;
-		output.appendChild(pre);
-	}
+		function writeToScreen(message) {
+			var pre = document.createElement("p");
+			pre.style.wordWrap = "break-word";
+			pre.innerHTML = message;
+			output.appendChild(pre);
+		}
 
-	window.addEventListener("load", init, false);
+		window.addEventListener("load", init, false);
 
-</script>
+	</script>
+	<script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
+</head>
 
-<h2>Zuul-AC User data</h2>
+<body>
 
-<div id="users"><h3>Users</h3></div>
-<div id="timetables"><h3>Time Tables</h3></div>
-<div id="output"></div>
+	<h2>Zuul-AC User data</h2>
+
+	<div id="users">
+		<h3>Users</h3>
+	</div>
+	<div id="timetables">
+		<h3>Time Tables</h3>
+	</div>
+	<div id="output"></div>
+
+	<div id='editor_holder'></div>
+	<button id='submit'>Submit (console.log)</button>
+
+	<script>
+		// Initialize the editor with a JSON schema
+		// JSON Editor comes from: https://github.com/json-editor/json-editor
+		var editor = new JSONEditor(document.getElementById('editor_holder'), {
+			schema: {
+				type: "object",
+				title: "Zuul Configuration",
+				properties: {
+					messenger_token: {
+						title: "Telegram Bot Token",
+						type: "string",
+					},
+					admins: {
+						"type": "array",
+						"format": "table",
+						title: "IDs of the Door Admins",
+						"items": {
+							"type": "string",
+						}
+					},
+					timetolive: {
+						type: "integer",
+						title: "Max depth to lend keys",
+						enum: [
+							0, 1, 2, 3, 4, 5
+						],
+						default: 5
+					},
+				}
+			}
+		});
+
+		// Hook up the submit button to log to the console
+		document.getElementById('submit').addEventListener('click', function () {
+			// Get the value from the editor
+			console.log(editor.getValue());
+			doSend("ac_newconfig",editor.getValue());
+
+		});
+	</script>
+</body>

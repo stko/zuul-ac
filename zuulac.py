@@ -18,27 +18,36 @@ _ = translate.gettext
 '''
 _ = lambda s: s
 
+messenger = None
+
+def restart():
+	global messenger
+	global store
+
+	print('try to restart')
+	if messenger:
+		messenger.shutdown()
+	messenger_token=store.read_config_value("messenger_token")
+	messenger_type=store.read_config_value("messenger_type")
+	print(messenger_token,messenger_type )
+	if messenger_token and messenger_type:
+		messenger= Messenger(messenger_type,messenger_token,am)
+	else:
+		logger.error(_("Config incomplete: No messenger_token or messenger_type"))
+	print('restarted')
 
 logger = zuullogger.getLogger(__name__)
-
 store = storage.Storage()
 server=webserver.ws_create(store)
 
-am= accessmanager.AccessManager(store,server)
+am= accessmanager.AccessManager(store,server,restart)
 server.register("ac_",None,am.msg,am.dummy,am.dummy)
 server.register("st_",None,store.msg,store.dummy,store.dummy)
 
-messenger_token=store.read_config_value("messenger_token")
-messenger_type=store.read_config_value("messenger_type")
-print(messenger_token,messenger_type )
-if messenger_token and messenger_type:
-	messenger= Messenger(messenger_type,messenger_token,am)
-else:
-	logger.error(_("Config incomplete: No messenger_token or messenger_type"))
-	
 
-
+restart()
 webserver.ws_thread(server)
+
 while(True):
 	time.sleep(1)
 

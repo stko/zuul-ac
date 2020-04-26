@@ -11,11 +11,12 @@ import defaults
 
 class AccessManager:
 
-	def __init__(self, store, smart_home_interface):
+	def __init__(self, store, smart_home_interface,restart_function):
 		self.store = store
 		self.mutex = Lock()
 		self.users = store.get_users()
 		self.queue = queue.Queue()
+		self.restart_function =restart_function
 		self.smart_home_interface = smart_home_interface
 		self.garbage_collection(self.users['users'].copy())
 		self.current_tokens = {}
@@ -23,9 +24,19 @@ class AccessManager:
 	def msg(self, data, ws_user):
 		if data['type'] == 'ac_otprequest':
 			self.queue.put(data)
+		if data['type'] == 'ac_newconfig':
+			self.write_config(data['config'])
 		if data['type'] == 'ac_tokenquery':
 			ws_user.ws.emit(
 				"tokenstate", {'valid': self.validate_token(data['config']['token'])})
+
+	def write_config(self, data):
+		valid_fields=self.store.config_keys()
+		for key in valid_fields:
+			if key in data:
+				print("new config", key, data[key])
+				#self.store.write_config_value(key,data[key],True)
+		#self.store.save_config()
 
 	def dummy(self, user):
 		pass
@@ -164,9 +175,6 @@ class AccessManager:
 		for admin in admin_list:
 			new_user_table[admin] = {'user': self.users['users'][admin]
 									 ['user'], 'time_table': self.create_full_time_table()}
-		if not self.users['timetables']:
-			self.mutex.release()
-			return
 		for user_id in self.users['timetables']:
 			for time_table_id in self.users['timetables'][user_id]:
 				if self.time_table_is_active(self.users['timetables'][user_id][time_table_id]):

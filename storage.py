@@ -37,9 +37,17 @@ class Storage:
 			if not admin in self.users['users']:
 				self.users['users'][admin]={'user':user.User('Alice','Admin', admin,'en')}
 
+	def config_keys(self):
+		'''provides config values allowed to change by the web interface
+		'''
+		return ['admins','messenger_token','timetolive']
+
 	def msg(self, data, ws_user):
 		if data['type'] == 'st_tree':
-			ws_user.ws.emit("tree", self.users)
+			config={}
+			for key in self.config_keys():
+				config[key]=self.config[key]
+			ws_user.ws.emit("tree", {'user_data':self.users,'config_data':config})
 
 	def dummy(self, user):
 		pass
@@ -57,21 +65,31 @@ class Storage:
 		return default
 
 
-	def write_config_value(self, key, value):
+	def write_config_value(self, key, value,delay_write=False):
 		''' write value into config, identified by key.
-		Saves also straigt to disk
+		Saves also straight to disk, if delay_write is not True
 
 		Args:
 		key (:obj:`str`): lookup index
 		value (:obj:`obj`): value to store
+		delay_write (:obj:`boolean`): Do not save now
 		'''
 
 		self.config[key]=value
+		if not delay_write:
+			self.save_config()
+
+	def save_config(self):
+		''' write config to disk
+		'''
+
 		try:
 			with open(self.config_file_name, 'w') as outfile:
 				json.dump(self.config, outfile, sort_keys=True, indent=4, separators=(',', ': '))
 		except:
 			logger.warning("couldn't write config file {0}".format(self.config_file_name))
+
+	
 
 	def get_admin_ids(self):
 		return self.read_config_value('admins')

@@ -80,14 +80,14 @@ class ZuulMessengerPlugin:
 		# Create the Updater and pass it your bot's token.
 		# Make sure to set use_context=True to use the new context based callbacks
 		# Post version 12 this will no longer be necessary
-		updater = Updater(messenger_token, use_context=True)
+		self.updater = Updater(messenger_token, use_context=True)
 		self.access_manager = access_manager
 		self.keyboard = [[]]
 		self.keyboard_functions = {}
 		self.new_contact = None
 		self.current_user = None
 		# Get the dispatcher to register handlers
-		dp = updater.dispatcher
+		dp = self.updater.dispatcher
 
 		# on different commands - answer in Telegram
 		dp.add_handler(CommandHandler("start", self.new_pin))
@@ -104,7 +104,7 @@ class ZuulMessengerPlugin:
 		dp.add_error_handler(self.error)
 
 		# Start the Bot
-		updater.start_polling()
+		self.updater.start_polling()
 
 		# Run the bot until you press Ctrl-C or the process receives SIGINT,
 		# SIGTERM or SIGABRT. This should be used most of the time, since
@@ -112,6 +112,12 @@ class ZuulMessengerPlugin:
 
 		# updater.idle() can only be used in main thread
 		# updater.idle()
+
+#https://github.com/python-telegram-bot/python-telegram-bot/issues/801#issuecomment-323778248
+	def shutdown(self):
+		self.updater.stop()
+		self.updater.is_idle = False
+
 
 	def user(self, update):
 		'''filters the user data out of the update object'''
@@ -199,7 +205,7 @@ class ZuulMessengerPlugin:
 	def menu_help(self, update, context, query):
 		"""Send the docs URL"""
 		msg = self.select_message_source(update, query)
-		msg.reply_text(self._("https://github.com/stko/zuul-ac"))
+		msg.reply_text(self._("http://koehlers.de/wiki/doku.php?id=misc:zuulac:usage_de"))
 		self.menu_main(update, context, query)
 
 	def help(self, update, context):
