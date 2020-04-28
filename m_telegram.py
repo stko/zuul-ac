@@ -16,16 +16,43 @@ import translate
 logger = zuullogger.getLogger(__name__)
 
 
-class ZuulMessengerPlugin:
-	'''
-	implements the connection to the telegram messenger infrastructure
-	'''
+class UserContext:
+	@classmethod
+	def set_failback_menu(cls, new_pin):
+		cls.failback_menu= new_pin
 
-	def _(self, text):
-		if self.current_user:
-			return translate.gettext(text, self.current_user['language'])
+	@classmethod
+	def get_user_context(cls,update,context,query):
+		if not 'user_context' in context.chat_data:
+			context.chat_data['user_context']=UserContext()
+		user_context= context.chat_data['user_context']
+		if query and query.message:
+			user_context.msg= query.message
 		else:
-			return text
+			if update.message:
+				user_context.msg=  update.message
+			else:
+				user_context.msg=  update.effective_message
+		if not user_context.user and update.effective_user:
+			'''filters the user data out of the update object'''
+			chat_user = update.effective_user
+			print("user name:{0} {1}".format(
+				chat_user.first_name, chat_user.last_name))
+			user_context.user = User(chat_user.first_name, chat_user.last_name, chat_user.id, chat_user.
+						language_code)
+			user_context.bot=context.bot
+		return user_context
+
+
+
+	def __init__(self):
+		self.keyboard = [[]]
+		self.keyboard_functions = {}
+		self.new_contact = None
+		self.user=None
+		self.msg= None
+		self.bot= None
+		self.last_follower_pos=-1
 
 	def clear_keyboard(self):
 		''' initialize the virtual keyboard'''
@@ -70,9 +97,21 @@ class ZuulMessengerPlugin:
 
 		if not query.data in self.keyboard_functions:
 			print("ilegal callback_data")
-			self.new_pin(update, context)
+			UserContext.failback_menu(update, context)
 			return None
 		return self.keyboard_functions[query.data](update, context, query)
+
+	def _(self, text):
+		if self.user:
+			return translate.gettext(text, self.user['language'])
+		else:
+			return text
+
+
+class ZuulMessengerPlugin:
+	'''
+	implements the connection to the telegram messenger infrastructure
+	'''
 
 	def __init__(self, messenger_token, access_manager):
 		"""Start the bot."""
@@ -82,10 +121,6 @@ class ZuulMessengerPlugin:
 		# Post version 12 this will no longer be necessary
 		self.updater = Updater(messenger_token, use_context=True)
 		self.access_manager = access_manager
-		self.keyboard = [[]]
-		self.keyboard_functions = {}
-		self.new_contact = None
-		self.current_user = None
 		# Get the dispatcher to register handlers
 		dp = self.updater.dispatcher
 
@@ -96,6 +131,9 @@ class ZuulMessengerPlugin:
 			self.button, pass_update_queue=True))
 		# handler when user shares a contact
 		dp.add_handler(MessageHandler(Filters.contact, self.share_contact))
+
+		# set the failback menu, in case something goes wrong
+		UserContext.set_failback_menu(self.new_pin)
 
 		# on noncommand i.e message - echo the message on Telegram
 		dp.add_handler(MessageHandler(Filters.text, self.echo))
@@ -113,25 +151,24 @@ class ZuulMessengerPlugin:
 		# updater.idle() can only be used in main thread
 		# updater.idle()
 
-#https://github.com/python-telegram-bot/python-telegram-bot/issues/801#issuecomment-323778248
+# https://github.com/python-telegram-bot/python-telegram-bot/issues/801#issuecomment-323778248
 	def shutdown(self):
 		self.updater.stop()
 		self.updater.is_idle = False
 
-
 	def user(self, update):
 		'''filters the user data out of the update object'''
 		chat_user = update.effective_user
-		print("user name:{0} {1}".format(
+		print("local user name:{0} {1}".format(
 			chat_user.first_name, chat_user.last_name))
 		return User(chat_user.first_name, chat_user.last_name, chat_user.id, chat_user.
 					language_code)
 
-	def send_image(self, update, query):
-		user = self.user(update)
-		msg = self.select_message_source(update, query)
 
-		otp = self.access_manager.requestOTP(user)
+	def send_image(self, update, context, query):
+		user_context = UserContext.get_user_context(update,context,query) 
+
+		otp = self.access_manager.requestOTP(user_context.user)
 		if otp['valid_time'] > 0:
 			if otp['type'] == 'qrcode':
 				qr = qrcode.QRCode(
@@ -152,26 +189,28 @@ class ZuulMessengerPlugin:
 				if otp['msg']:
 					msg_text = otp['msg']
 				else:
-					msg_text = 'This Pin is valid for {0} seconds - Just present it to the door camera to open the door'
-				msg.reply_text(
-					self._(msg_text).format(otp['valid_time'], otp['otp']))
+					msg_text = user_context._(
+						'This Pin is valid for {0} seconds - Just present it to the door camera to open the door')
+				user_context.msg.reply_text(
+					msg_text.format(otp['valid_time'], otp['otp']))
 				#update.message.reply_photo( photo= open('qr-code.png', 'rb'))
-				msg.reply_photo(photo=bio)
+				user_context.msg.reply_photo(photo=bio)
 			else:
 				if otp['msg']:
 					msg_text = otp['msg']
 				else:
-					msg_text = 'This Pin {1} is valid for {0} seconds'
-				msg.reply_text(
-					self._(msg_text).format(otp['valid_time'], otp['otp']))
+					msg_text = user_context._(
+						'This Pin {1} is valid for {0} seconds')
+				user_context.msg.reply_text(
+					msg_text.format(otp['valid_time'], otp['otp']))
 
 		else:
 			if otp['msg']:
 				msg_text = otp['msg']
 			else:
-				msg_text = 'You won\'t let in just now. Please try again at another time'
-			msg.reply_text(
-				self._(msg_text))
+				msg_text = user_context._(
+					'You won\'t let in just now. Please try again at another time')
+			user_context.msg.reply_text(msg_text)
 
 	# Define a few command handlers. These usually take the two arguments update and
 	# context. Error handlers also receive the raised TelegramError object in error.
@@ -179,14 +218,6 @@ class ZuulMessengerPlugin:
 	def simple_keyboard_callback(self, update, context, query):
 		print("simple callback", query.data)
 
-	def select_message_source(self, update, query):
-		if query and query.message:
-			return query.message
-		else:
-			if update.message:
-				return update.message
-			else:
-				return update.effective_message
 
 	def new_pin(self, update, context):
 		"""Send a pin instandly when the command /start is issued."""
@@ -194,69 +225,77 @@ class ZuulMessengerPlugin:
 
 	def menu_new_pin(self, update, context, query):
 		"""Send a pin instandly"""
-		msg = self.select_message_source(update, query)
-
+		user_context = UserContext.get_user_context(update,context,query) 
 		# known user?
-		self.current_user = self.access_manager.user_info(self.user(update))
-		if self.current_user != None:
-			self.send_image(update, query)
+		if self.access_manager.user_info(
+			user_context.user) != None:
+			self.send_image(update,context, query)
 		self.menu_main(update, context, query)
 
 	def menu_help(self, update, context, query):
 		"""Send the docs URL"""
-		msg = self.select_message_source(update, query)
-		msg.reply_text(self._("http://koehlers.de/wiki/doku.php?id=misc:zuulac:usage_de"))
+		user_context = UserContext.get_user_context(update,context,query) 
+		user_context.msg.reply_text(
+			user_context._("http://koehlers.de/wiki/doku.php?id=misc:zuulac:usage_de"))
 		self.menu_main(update, context, query)
 
 	def help(self, update, context):
 		"""Send a message when the command /help is issued."""
-		update.message.reply_text(self._('Go to the Online Manual'))
+		update.message.reply_text(user_context._('Go to the Online Manual'))
 		self.menu_help(update, context, None)
 
 	def add_follower_callback(self, update, context, query):
 		'''adds a new user'''
-		msg = self.select_message_source(update, query)
-		if self.new_contact and self.current_user:
+		user_context = UserContext.get_user_context(update,context,query) 
+		if user_context.new_contact and user_context.user:
 			changed_users = self.access_manager.add_user(
-				self.current_user, self.new_contact)
+				user_context.user, user_context.new_contact)
+			keyboard = [[InlineKeyboardButton(user_context._("Start"), callback_data='main')]]
+			reply_markup = InlineKeyboardMarkup(keyboard)
 			for user in changed_users:
-				#context.bot.send_message(chat_id=user['user_id'], text=self._("You got a key. You can open the door now"))
-				context.bot.send_message(chat_id='1137173018', text=self._("You got a key. You can open the door now"))
-			msg.reply_text(self._('Key lend to {0} {1}').format(
-				self.new_contact['first_name'], self.new_contact['last_name']))
+				try:
+					user_context.bot.send_message(chat_id=user['user']['user_id'], text=user_context._(
+						"You got a key. You can open the door now"), reply_markup=reply_markup)
+				except:
+					print("couldn't send addition notification to user")
+			user_context.msg.reply_text(user_context._('Key lend to {0} {1}').format(
+				user_context.new_contact['first_name'], user_context.new_contact['last_name']))
 		else:
-			msg.reply_text(self._("Something went wrong"))
-		self.new_contact = None
+			user_context.msg.reply_text(user_context._("Something went wrong"))
+		user_context.new_contact = None
 		self.menu_main(update, context, query)
 
 	def delete_follower_callback(self, update, context, query):
 		'''deletes a user'''
-		msg = self.select_message_source(update, query)
+		user_context = UserContext.get_user_context(update,context,query) 
 		delete_user = self.access_manager.user_info_by_id(query.data)
-		if delete_user and self.current_user:
-			changed_users=self.access_manager.delete_user_by_id(
-				self.current_user, query.data)
+		if delete_user and user_context.user:
+			changed_users = self.access_manager.delete_user_by_id(
+				user_context.user, query.data)
 			for user in changed_users:
-				#context.bot.send_message(chat_id=user['user_id'], text=self._("Your key was revoked. You can not open the door anymore"))
-				context.bot.send_message(chat_id='1137173018', text=self._("Your key was revoked. You can not open the door anymore"))
-
-			msg.reply_text(self._('Key brought back from {0} {1}').format(
+				try:
+					context.bot.send_message(chat_id=user['user']['user_id'], text=user_context._(
+						"Your key was revoked. You can not open the door anymore"))
+					#context.bot.send_message(chat_id='1137173018', text=user_context._("Your key was revoked. You can not open the door anymore"))
+				except:
+					print("couldn't send deletion notification to user")
+			user_context.msg.reply_text(user_context._('Key brought back from {0} {1}').format(
 				delete_user['first_name'], delete_user['last_name']))
 		else:
-			msg.reply_text(self._("Something went wrong"))
+			user_context.msg.reply_text(user_context._("Something went wrong"))
 		self.menu_main(update, context, query)
 
 	def delete_sponsor_callback(self, update, context, query):
 		'''deletes a sponsor'''
-		msg = self.select_message_source(update, query)
+		user_context = UserContext.get_user_context(update,context,query) 
 		delete_user = self.access_manager.user_info_by_id(query.data)
-		if delete_user and self.current_user:
+		if delete_user and user_context.user:
 			self.access_manager.delete_user_by_id(
-				query.data, self.current_user)
-			msg.reply_text(self._('Key returned to {0} {1}').format(
+				query.data, user_context.user)
+			user_context.msg.reply_text(user_context._('Key returned to {0} {1}').format(
 				delete_user['first_name'], delete_user['last_name']))
 		else:
-			msg.reply_text(self._("Something went wrong"))
+			user_context.msg.reply_text(user_context._("Something went wrong"))
 		self.menu_main(update, context, query)
 
 	def delete_follower_by_list_item(self, update, context, query):
@@ -270,162 +309,162 @@ class ZuulMessengerPlugin:
 			update, context, self.access_manager.user_info_by_id(query.data))
 
 	def list_follower_callback(self, update, context, query):
-		msg = self.select_message_source(update, query)
-		self.last_follower_pos = self.fill_list(
-			query.data, self.access_manager.get_follower_list, self.delete_follower_by_list_item, self.list_follower_callback)
-		self.add_keyboard_item(self._('Commands'), "menu",
-												   self.menu_menu, True)
-		reply_markup = self.compile_keyboard()
-		msg.reply_text(self._('Choose the Key to get back'),
+		user_context = UserContext.get_user_context(update,context,query) 
+		user_context.last_follower_pos = self.fill_list(
+			query.data, self.access_manager.get_follower_list, self.delete_follower_by_list_item, self.list_follower_callback, user_context)
+		user_context.add_keyboard_item(user_context._('Key Management'), "menu",
+							   self.menu_menu, True)
+		reply_markup = user_context.compile_keyboard()
+		user_context.msg.reply_text(user_context._('Choose the Key to get back'),
 					   reply_markup=reply_markup)
 
 	def list_sponsor_callback(self, update, context, query):
-		msg = self.select_message_source(update, query)
-		self.last_follower_pos = self.fill_list(
-			query.data, self.access_manager.get_sponsor_list, self.delete_sponsor_by_list_item, self.list_sponsor_callback)
-		self.add_keyboard_item(self._('Commands'), "menu",
-												   self.menu_menu, True)
-		reply_markup = self.compile_keyboard()
-		msg.reply_text(self._('Choose the Key to get back'),
+		user_context = UserContext.get_user_context(update,context,query) 
+		user_context.last_follower_pos = self.fill_list(
+			query.data, self.access_manager.get_sponsor_list, self.delete_sponsor_by_list_item, self.list_sponsor_callback, user_context)
+		user_context.add_keyboard_item(user_context._('Key Management'), "menu",
+							   self.menu_menu, True)
+		reply_markup = user_context.compile_keyboard()
+		user_context.msg.reply_text(user_context._('Choose the Key to get back'),
 					   reply_markup=reply_markup)
 
-	def fill_list(self, last_pos, get_list, item_callback, list_callback):
-		self.clear_keyboard()
+	def fill_list(self, last_pos, get_list, item_callback, list_callback, user_context):
+		user_context.clear_keyboard()
 		last_pos = int(last_pos)
 		if last_pos < 0:  # a dirty trick, as we can't start all lists with the same starting index 0, as that crashes in the virtual keyboard generation, when all keyboard buttons would have the same index...
 			last_pos = 0
 		items_per_page = 5
-		item_list = get_list(self.current_user)
+		item_list = get_list(user_context.user)
 		list_len = len(item_list)
 		# calculate view
 		for i in range(items_per_page):
 			if (i+last_pos) < list_len:
-				self.add_keyboard_item(item_list[i+last_pos]["text"], item_list[i+last_pos]["user_id"],
+				user_context.add_keyboard_item(item_list[i+last_pos]["text"], item_list[i+last_pos]["user_id"],
 									   item_callback, True)
 		if last_pos > 0:
 			new_pos = last_pos-items_per_page
 			if new_pos < 0:
 				new_pos = 0
-			self.add_keyboard_item('<', str(new_pos),
+			user_context.add_keyboard_item('<', str(new_pos),
 								   list_callback, True)
 		else:
-			self.add_keyboard_item('-', '0',
+			user_context.add_keyboard_item('-', '0',
 								   list_callback, True)
 		if last_pos+items_per_page < list_len:
-			self.add_keyboard_item('>', str(last_pos+items_per_page),
+			user_context.add_keyboard_item('>', str(last_pos+items_per_page),
 								   list_callback, False)
 		else:
-			self.add_keyboard_item('-', str(last_pos),
+			user_context.add_keyboard_item('-', str(last_pos),
 								   list_callback, False)
 
 	def menu_menu(self, update, context, query):
-		msg = self.select_message_source(update, query)
-		self.clear_keyboard()
-		self.add_keyboard_item(self._("Get lend Keys back"), "-1",  # the minus -1 is to make the index unique
+		user_context = UserContext.get_user_context(update,context,query) 
+		user_context.clear_keyboard()
+		user_context.add_keyboard_item(user_context._("Get lend Keys back"), "-1",  # the minus -1 is to make the index unique
 							   self.list_follower_callback, True)
-		self.add_keyboard_item(self._("Return borrowed Keys"), "-2",  # the minus -2 is to make the index unique
+		user_context.add_keyboard_item(user_context._("Return borrowed Keys"), "-2",  # the minus -2 is to make the index unique
 							   self.list_sponsor_callback, True)
-		self.add_keyboard_item(self._("Help"), "help",
+		user_context.add_keyboard_item(user_context._("About this Program"), "help",
 							   self.menu_help, True)
-		self.add_keyboard_item(self._("Main Menu"), "goto_main",
+		user_context.add_keyboard_item(user_context._("Overview"), "goto_main",
 							   self.menu_main, True)
-		reply_markup = self.compile_keyboard()
-		msg.reply_text(self._('Commands'), reply_markup=reply_markup)
+		reply_markup = user_context.compile_keyboard()
+		user_context.msg.reply_text(user_context._('Key Management'), reply_markup=reply_markup)
 
 	def menu_main(self, update, context, query):
-		msg = self.select_message_source(update, query)
-		self.clear_keyboard()
+		user_context = UserContext.get_user_context(update,context,query) 
+		user_context.clear_keyboard()
 		# known user?
-		self.current_user = self.access_manager.user_info(self.user(update))
-		if self.current_user != None:
-			text_info = self._('Main Menu')
-			self.add_keyboard_item(self._("New Pin"), "dummy",
+		if self.access_manager.user_info(user_context.user) != None:
+			text_info = user_context._('Overview')
+			user_context.add_keyboard_item(user_context._("New Pin"), "dummy",
 								   self.menu_new_pin, True)
-			self.add_keyboard_item(self._("Commands"), "menu",
-													   self.menu_menu, True)
+			user_context.add_keyboard_item(user_context._("Key Management"), "menu",
+								   self.menu_menu, True)
 		else:
-			text_info = self._('Unknown User!')
-			self.add_keyboard_item(self._("Help"), "help",
+			text_info = user_context._('Unknown User!')
+			user_context.add_keyboard_item(user_context._("About this Program"), "help",
 								   self.menu_help, True)
 
-		reply_markup = self.compile_keyboard()
-		msg.reply_text(text_info, reply_markup=reply_markup)
+		reply_markup = user_context.compile_keyboard()
+		user_context.msg.reply_text(text_info, reply_markup=reply_markup)
 
 	def add_follower(self, update, context, new_user):
 
-		self.clear_keyboard()
-		self.add_keyboard_item(self._("Lend Key"), "add",
-												   self.add_follower_callback, True)
-		self.add_keyboard_item(self._('Main Menu'), "goto_main",
+		user_context = UserContext.get_user_context(update,context,None) 
+		user_context.clear_keyboard()
+		user_context.add_keyboard_item(user_context._("Lend Key"), "add",
+							   self.add_follower_callback, True)
+		user_context.add_keyboard_item(user_context._('Overview'), "goto_main",
 							   self.menu_main, True)
-		reply_markup = self.compile_keyboard()
+		reply_markup = user_context.compile_keyboard()
 
 		update.message.reply_text(
-			self._('Ok to lend the Key to {0} {1}?').format(new_user['first_name'], new_user['last_name']), reply_markup=reply_markup)
+			user_context._('Ok to lend the Key to {0} {1}?').format(new_user['first_name'], new_user['last_name']), reply_markup=reply_markup)
 
 	def delete_follower(self, update, context, user):
 		'''deletes a user'''
-		self.clear_keyboard()
-		self.add_keyboard_item(self._("Bring Back"), self.access_manager.user_id(user),
+		user_context = UserContext.get_user_context(update,context,None) 
+		user_context.clear_keyboard()
+		user_context.add_keyboard_item(user_context._("Bring Back"), self.access_manager.user_id(user),
 							   self.delete_follower_callback, True)
-		self.add_keyboard_item(self._('Main Menu'), "goto_main",
+		user_context.add_keyboard_item(user_context._('Overview'), "goto_main",
 							   self.menu_main, True)
-		reply_markup = self.compile_keyboard()
+		reply_markup = user_context.compile_keyboard()
 		if update.message:
 			msg = update.message
 		else:
 			msg = update.effective_message
 		msg.reply_text(
-			self._('Ok to bring back the key from {0} {1}?').format(user['first_name'], user['last_name']), reply_markup=reply_markup)
+			user_context._('Ok to bring back the key from {0} {1}?').format(user['first_name'], user['last_name']), reply_markup=reply_markup)
 
 	def delete_sponsor(self, update, context, user):
 		'''deletes a sponsor'''
-		self.clear_keyboard()
-		self.add_keyboard_item(self._("return"), self.access_manager.user_id(user),
+		user_context = UserContext.get_user_context(update,context,None) 
+		user_context.clear_keyboard()
+		user_context.add_keyboard_item(user_context._("return"), self.access_manager.user_id(user),
 							   self.delete_sponsor_callback, True)
-		self.add_keyboard_item(self._('Main Menu'), "goto_main",
+		user_context.add_keyboard_item(user_context._('Overview'), "goto_main",
 							   self.menu_main, True)
-		reply_markup = self.compile_keyboard()
+		reply_markup = user_context.compile_keyboard()
 		if update.message:
 			msg = update.message
 		else:
 			msg = update.effective_message
 		msg.reply_text(
-			self._('Ok to return the key to {0} {1}?').format(user['first_name'], user['last_name']), reply_markup=reply_markup)
+			user_context._('Ok to return the key to {0} {1}?').format(self.access_manager.format_none(user['first_name']), self.access_manager.format_none(user['last_name'])), reply_markup=reply_markup)
 
 	def share_contact(self, update, context):
-		if update.message:
-			msg = update.message
-		else:
-			msg = update.effective_message
-		self.current_user = self.access_manager.user_info(self.user(update))
-
+		user_context = UserContext.get_user_context(update,context,None) 
 		"""Checks, if a shared contact already exists"""
-		self.new_contact = User(update.message.contact.first_name, update.message.contact.last_name,
+		user_context.new_contact = User(update.message.contact.first_name, update.message.contact.last_name,
 								update.message.contact.user_id, None)  # contacts don't have language codes
-		user_info = self.access_manager.user_info(self.new_contact)
+		user_info = self.access_manager.user_info(user_context.new_contact)
 		if user_info != None:
-			if self.access_manager.user_is_active(self.current_user, self.new_contact):
+			if self.access_manager.user_is_active(user_context.user, user_context.new_contact):
 				self.delete_follower(update, context, user_info)
 				return
-		if self.access_manager.user_can_lend(self.current_user):
-			self.add_follower(update, context, self.new_contact)
+		if self.access_manager.user_can_lend(user_context.user):
+			self.add_follower(update, context, user_context.new_contact)
 		else:
-			msg.reply_text(	self._('You can not lend your key further'))
-
-
+			user_context.msg.reply_text(	user_context._('You can not lend your key further'))
 
 	def button(self, update, context):
+		user_context = UserContext.get_user_context(update,context,None) 
 		query = update.callback_query
 		# CallbackQueries need to be answered, even if no notification to the user is needed
 		# Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
 		query.answer()
-		self.execute_keyboard_callback(update, context, query)
+		if query.data=='main':
+			self.menu_main(update, context, query) # just in case a new user got his initial notification
+		else:
+			user_context.execute_keyboard_callback(update, context, query)
 		#query.edit_message_text(text="Selected option: {}".format(query.data))
 
 	def echo(self, update, context):
 		"""Echo the user message."""
-		update.message.reply_text(self._("You wrote:")+update.message.text)
+		user_context = UserContext.get_user_context(update,context,None) 
+		update.message.reply_text(user_context._("You wrote:")+update.message.text)
 		print(update.message.text)
 		self.menu_main(update, context, None)
 

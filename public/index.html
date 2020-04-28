@@ -49,7 +49,8 @@
 				for (var user_id in user_data.users) {
 					console.log(user_id)
 					var li = document.createElement("li");
-					var user_info = user_data.users[user_id].user.first_name + ' ' + user_data.users[user_id].user.last_name + " (" + user_id + ") <" + user_data.users[user_id].time_table[0] + ">"
+					var time_table_string = user_data.users[user_id].time_table ? user_data.users[user_id].time_table[0] : "inactive"
+					var user_info = user_data.users[user_id].user.first_name + ' ' + user_data.users[user_id].user.last_name + " (" + user_id + ") <" + time_table_string + ">"
 					li.appendChild(document.createTextNode(user_info));
 					users.appendChild(li);
 				}

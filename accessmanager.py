@@ -100,7 +100,7 @@ class AccessManager:
 			for follower_id in self.users['timetables'][sponsor_user["user_id"]][time_table_id]['users']:
 				# if a deletion date is not already set
 				if not self.users['timetables'][sponsor_user["user_id"]][time_table_id]['users'][follower_id]:
-					res.append({'text': self.users['users'][follower_id]['user']['first_name']+' '+self.users['users'][follower_id]['user']['last_name'],
+					res.append({'text': "{0} {1}".format(self.users['users'][follower_id]['user']['first_name'],self.users['users'][follower_id]['user']['last_name']),
 								"user_id": follower_id})
 		return res
 
@@ -112,7 +112,7 @@ class AccessManager:
 				# important: users can also return keys out of inactive time tables, so we don't check if the table is active
 				# no deletion date set
 				if follower_id in time_table['users'] and not time_table['users'][follower_id]:
-					res.append({'text': self.users['users'][sponsor_user_id]['user']['first_name']+' '+self.users['users'][sponsor_user_id]['user']['last_name'],
+					res.append({'text': "{0} {1}".format(self.users['users'][sponsor_user_id]['user']['first_name'],self.users['users'][sponsor_user_id]['user']['last_name']),
 								"user_id": sponsor_user_id})
 		return res
 
@@ -171,20 +171,37 @@ class AccessManager:
 		self.mutex.acquire()
 		new_user_table = {}
 		# admins are always walid
+
 		admin_list = self.store.get_admin_ids()
 		for admin in admin_list:
 			new_user_table[admin] = {'user': self.users['users'][admin]
 									 ['user'], 'time_table': self.create_full_time_table()}
+			# after startup the admins do not have a valid full time table, so we correct this here
+			if not self.users['users'][admin]['time_table']:
+				self.users['users'][admin]['time_table'] = self.create_full_time_table()
+
 		for user_id in self.users['timetables']:
 			for time_table_id in self.users['timetables'][user_id]:
 				if self.time_table_is_active(self.users['timetables'][user_id][time_table_id]):
 					for follower_id in self.users['timetables'][user_id][time_table_id]['users']:
+						# copy of all included followers into the new user table
+						if not follower_id in new_user_table:
+							new_user_table[follower_id] = {
+								'user': self.users['users'][follower_id]['user'], 'time_table': None}
+						
+						'''
+						
+						 previous version, which copied only active followers
+
 						# the date is set, so we don't handle this user here
 						if self.users['timetables'][user_id][time_table_id]['users'][follower_id]:
 							continue
 						if not follower_id in new_user_table:
 							new_user_table[follower_id] = {
 								'user': self.users['users'][follower_id]['user'], 'time_table': None}
+						'''
+
+						
 		'''and now we calculate the allowance, starting with the admin users and repeating the loop,
 		until all valid users have got their time table derivated from their sponsors
 
@@ -197,7 +214,7 @@ class AccessManager:
 			something_has_changed = False
 			for user_id in self.users['timetables']:
 				# the user has a time table, so he's either a admin or another already validated user
-				if new_user_table[user_id]['time_table'] != None:
+				if user_id in  new_user_table and  new_user_table[user_id]['time_table'] != None:
 					for time_table_id in self.users['timetables'][user_id]:
 						if self.time_table_is_active(self.users['timetables'][user_id][time_table_id]):
 							for follower_id in self.users['timetables'][user_id][time_table_id]['users']:
@@ -209,13 +226,15 @@ class AccessManager:
 									new_user_table[follower_id]['time_table'] = self.calculate_follower_time_table(
 										new_user_table[user_id]['time_table'], None, new_user_table[follower_id]['time_table'])
 
+		# Reminder: If a users ['time_table'] is None, then the user is still anywhere in a time plan, but not avtive anymore
+
 		self.users['users'] = new_user_table
 		delta_users = []
 		for user_id, user in new_user_table.items():
 			if not user_id in old_user_table:
 				delta_users.append(user)
 		for user_id, user in old_user_table.items():
-			if not user_id in new_user_table:
+			if not user_id in new_user_table or user['time_table'] == None:
 				delta_users.append(user)
 		try:
 			self.store.write_users()

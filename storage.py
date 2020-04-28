@@ -35,7 +35,7 @@ class Storage:
 		# copy admin acounts into the user list, if not already in
 		for admin in self.get_admin_ids():
 			if not admin in self.users['users']:
-				self.users['users'][admin]={'user':user.User('Alice','Admin', admin,'en')}
+				self.users['users'][admin]={'user':user.User('Alice','Admin', admin,'en'),'time_table':None}
 
 	def config_keys(self):
 		'''provides config values allowed to change by the web interface
@@ -100,8 +100,7 @@ class Storage:
 
 		try:
 			with open(self.users_file_name, 'w') as outfile:
-				print(json.dumps(self.users, sort_keys=True, indent=4, separators=(',', ': ')))
-#				json.dump(self.users, outfile, sort_keys=True, indent=4, separators=(',', ': '))
+				#print(json.dumps(self.users, sort_keys=True, indent=4, separators=(',', ': ')))
 				json.dump(self.users, outfile, sort_keys=True, indent=4, separators=(',', ': '))
 		except Exception as ex:
 			logger.warning("couldn't write users file {0} because {1}".format(self.users_file_name,ex))
