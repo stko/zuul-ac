@@ -35,8 +35,10 @@ class AccessManager:
 		for key in valid_fields:
 			if key in data:
 				print("new config", key, data[key])
-				#self.store.write_config_value(key,data[key],True)
-		#self.store.save_config()
+				self.store.write_config_value(key,data[key],True)
+		self.store.save_config()
+		if self.restart_function:
+			self.restart_function()
 
 	def dummy(self, user):
 		pass
@@ -52,7 +54,17 @@ class AccessManager:
 	def user_id(self, user):
 		return user["user_id"]
 
-	def user_is_active(self, current_user, active_user, time_table_id='1'):
+	def user_is_active(self,user):
+		'''returns a user only if he exists and is active, otherways none'''
+
+		user_ref = self.user_info_by_id(user["user_id"])
+		if user_ref:  # update the user with the latest just received data
+			self.users['users'][user["user_id"]]['user'] = user
+			if self.users['users'][user["user_id"]]['time_table']:# return user if user is active
+				return user_ref
+		return None
+
+	def user_is_follower(self, current_user, active_user, time_table_id='1'):
 		''' returns true if the user has no deletion time set'''
 		# does the current user already have lend some keys?
 		if not current_user["user_id"] in self.users['timetables']:
@@ -201,7 +213,7 @@ class AccessManager:
 								'user': self.users['users'][follower_id]['user'], 'time_table': None}
 						'''
 
-						
+
 		'''and now we calculate the allowance, starting with the admin users and repeating the loop,
 		until all valid users have got their time table derivated from their sponsors
 
@@ -231,10 +243,10 @@ class AccessManager:
 		self.users['users'] = new_user_table
 		delta_users = []
 		for user_id, user in new_user_table.items():
-			if not user_id in old_user_table:
+			if not user_id in old_user_table or user['time_table'] != None and old_user_table[user_id]['time_table'] == None :
 				delta_users.append(user)
 		for user_id, user in old_user_table.items():
-			if not user_id in new_user_table or user['time_table'] == None:
+			if not user_id in new_user_table or user['time_table'] != None and new_user_table[user_id]['time_table'] == None :
 				delta_users.append(user)
 		try:
 			self.store.write_users()
@@ -242,14 +254,14 @@ class AccessManager:
 			self.mutex.release()
 		return delta_users
 
-	def delete_user_by_id(self, current_user, delete_user_id):
-		if current_user["user_id"] in self.users['timetables']:
+	def delete_user_by_id(self, current_user_id, delete_user_id):
+		if current_user_id in self.users['timetables']:
 			# for later enhancements. Actual there's only the standard id '1'
-			for id in self.users['timetables'][current_user["user_id"]]:
-				if delete_user_id in self.users['timetables'][current_user["user_id"]][id]['users']:
+			for id in self.users['timetables'][current_user_id]:
+				if delete_user_id in self.users['timetables'][current_user_id][id]['users']:
 					# if a deletion date is not already set
-					if not self.users['timetables'][current_user["user_id"]][id]['users'][delete_user_id]:
-						self.users['timetables'][current_user["user_id"]
+					if not self.users['timetables'][current_user_id][id]['users'][delete_user_id]:
+						self.users['timetables'][current_user_id
 												 ][id]['users'][delete_user_id] = self.get_unix_timestamp()
 		return self.garbage_collection(self.users['users'].copy())
 

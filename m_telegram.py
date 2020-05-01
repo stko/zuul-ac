@@ -43,8 +43,6 @@ class UserContext:
 			user_context.bot=context.bot
 		return user_context
 
-
-
 	def __init__(self):
 		self.keyboard = [[]]
 		self.keyboard_functions = {}
@@ -150,8 +148,9 @@ class ZuulMessengerPlugin:
 
 		# updater.idle() can only be used in main thread
 		# updater.idle()
+		self.myself()
 
-# https://github.com/python-telegram-bot/python-telegram-bot/issues/801#issuecomment-323778248
+	# https://github.com/python-telegram-bot/python-telegram-bot/issues/801#issuecomment-323778248
 	def shutdown(self):
 		self.updater.stop()
 		self.updater.is_idle = False
@@ -164,6 +163,12 @@ class ZuulMessengerPlugin:
 		return User(chat_user.first_name, chat_user.last_name, chat_user.id, chat_user.
 					language_code)
 
+	def myself(self):
+		'''returns a user object about the bot itself
+		'''
+		name = self.updater.bot.get_me()
+		print(name)
+		return name
 
 	def send_image(self, update, context, query):
 		user_context = UserContext.get_user_context(update,context,query) 
@@ -218,7 +223,6 @@ class ZuulMessengerPlugin:
 	def simple_keyboard_callback(self, update, context, query):
 		print("simple callback", query.data)
 
-
 	def new_pin(self, update, context):
 		"""Send a pin instandly when the command /start is issued."""
 		self.menu_new_pin(update, context, None)
@@ -227,7 +231,7 @@ class ZuulMessengerPlugin:
 		"""Send a pin instandly"""
 		user_context = UserContext.get_user_context(update,context,query) 
 		# known user?
-		if self.access_manager.user_info(
+		if self.access_manager.user_is_active(
 			user_context.user) != None:
 			self.send_image(update,context, query)
 		self.menu_main(update, context, query)
@@ -241,6 +245,7 @@ class ZuulMessengerPlugin:
 
 	def help(self, update, context):
 		"""Send a message when the command /help is issued."""
+		user_context = UserContext.get_user_context(update,context,None) 
 		update.message.reply_text(user_context._('Go to the Online Manual'))
 		self.menu_help(update, context, None)
 
@@ -271,7 +276,7 @@ class ZuulMessengerPlugin:
 		delete_user = self.access_manager.user_info_by_id(query.data)
 		if delete_user and user_context.user:
 			changed_users = self.access_manager.delete_user_by_id(
-				user_context.user, query.data)
+				self.access_manager.user_id(user_context.user), query.data)
 			for user in changed_users:
 				try:
 					context.bot.send_message(chat_id=user['user']['user_id'], text=user_context._(
@@ -291,7 +296,7 @@ class ZuulMessengerPlugin:
 		delete_user = self.access_manager.user_info_by_id(query.data)
 		if delete_user and user_context.user:
 			self.access_manager.delete_user_by_id(
-				query.data, user_context.user)
+				query.data, self.access_manager.user_id(user_context.user))
 			user_context.msg.reply_text(user_context._('Key returned to {0} {1}').format(
 				delete_user['first_name'], delete_user['last_name']))
 		else:
@@ -375,14 +380,14 @@ class ZuulMessengerPlugin:
 		user_context = UserContext.get_user_context(update,context,query) 
 		user_context.clear_keyboard()
 		# known user?
-		if self.access_manager.user_info(user_context.user) != None:
+		if self.access_manager.user_is_active(user_context.user) != None:
 			text_info = user_context._('Overview')
 			user_context.add_keyboard_item(user_context._("New Pin"), "dummy",
 								   self.menu_new_pin, True)
 			user_context.add_keyboard_item(user_context._("Key Management"), "menu",
 								   self.menu_menu, True)
 		else:
-			text_info = user_context._('Unknown User!')
+			text_info = user_context._('Unknown User! ({0})').format(self.access_manager.user_id(user_context.user))
 			user_context.add_keyboard_item(user_context._("About this Program"), "help",
 								   self.menu_help, True)
 
@@ -432,16 +437,16 @@ class ZuulMessengerPlugin:
 		else:
 			msg = update.effective_message
 		msg.reply_text(
-			user_context._('Ok to return the key to {0} {1}?').format(self.access_manager.format_none(user['first_name']), self.access_manager.format_none(user['last_name'])), reply_markup=reply_markup)
+			user_context._('Ok to return the key to {0} {1}?').format(user['first_name'],user['last_name']), reply_markup=reply_markup)
 
 	def share_contact(self, update, context):
 		user_context = UserContext.get_user_context(update,context,None) 
 		"""Checks, if a shared contact already exists"""
 		user_context.new_contact = User(update.message.contact.first_name, update.message.contact.last_name,
 								update.message.contact.user_id, None)  # contacts don't have language codes
-		user_info = self.access_manager.user_info(user_context.new_contact)
+		user_info = self.access_manager.user_is_active(user_context.new_contact)
 		if user_info != None:
-			if self.access_manager.user_is_active(user_context.user, user_context.new_contact):
+			if self.access_manager.user_is_follower(user_context.user, user_context.new_contact):
 				self.delete_follower(update, context, user_info)
 				return
 		if self.access_manager.user_can_lend(user_context.user):
