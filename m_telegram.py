@@ -125,6 +125,7 @@ class ZuulMessengerPlugin:
 		# on different commands - answer in Telegram
 		dp.add_handler(CommandHandler("start", self.new_pin))
 		dp.add_handler(CommandHandler("help", self.help))
+		dp.add_handler(CommandHandler("idc", self.idcard))
 		dp.add_handler(CallbackQueryHandler(
 			self.button, pass_update_queue=True))
 		# handler when user shares a contact
@@ -248,6 +249,43 @@ class ZuulMessengerPlugin:
 		user_context = UserContext.get_user_context(update,context,None) 
 		update.message.reply_text(user_context._('Go to the Online Manual'))
 		self.menu_help(update, context, None)
+
+	def idcard(self, update, context):
+		"""Send a idcard."""
+		user_context = UserContext.get_user_context(update,context,None) 
+		id_card=self.access_manager.request_id_card(user_context.user,self.myself()['username'], self.myself()['username'])
+		#update.message.reply_text('id token:'+id_card)
+
+		qr = qrcode.QRCode(
+			version=1,
+			error_correction=qrcode.constants.ERROR_CORRECT_L,
+			box_size=10,
+			border=4,
+		)
+		qr.add_data(id_card)
+		qr.make(fit=True)
+
+		img = qr.make_image(fill_color="black", back_color="white")
+
+		bio = BytesIO()
+		bio.name = 'image.jpeg'
+		img.save(bio, 'PNG')
+		bio.seek(0)
+		msg_text="Bang!"
+		'''
+		if otp['msg']:
+			msg_text = otp['msg']
+		else:
+			msg_text = user_context._(
+				'This Pin is valid for {0} seconds - Just present it to the door camera to open the door')
+		'''
+		user_context.msg.reply_text(
+			msg_text)
+		#update.message.reply_photo( photo= open('qr-code.png', 'rb'))
+		user_context.msg.reply_photo(photo=bio)
+
+
+
 
 	def add_follower_callback(self, update, context, query):
 		'''adds a new user'''
@@ -469,7 +507,7 @@ class ZuulMessengerPlugin:
 	def echo(self, update, context):
 		"""Echo the user message."""
 		user_context = UserContext.get_user_context(update,context,None) 
-		update.message.reply_text(user_context._("You wrote:")+update.message.text)
+		user_context.msg.reply_text(user_context._("You wrote:")+update.message.text)
 		print(update.message.text)
 		self.menu_main(update, context, None)
 

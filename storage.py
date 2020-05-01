@@ -12,9 +12,10 @@ _ = translate.gettext
 
 logger = zuullogger.getLogger(__name__)
 class Storage:
-	def __init__(self):
+	def __init__(self,modref):
 		''' loads all data files'''
 		self.config = {}
+		self.modref = modref
 		self.users = {'users':{},'timetables':{}} # just empty lists
 		self.config_file_name=os.path.join(os.path.dirname(__file__), 'config.json')
 		self.users_file_name=os.path.join(os.path.dirname(__file__), 'users.json')

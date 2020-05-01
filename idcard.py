@@ -57,11 +57,10 @@ def sign_bytes(message, store, name):
 	return signature
 
 
-def verify_sign(message, signature, store, name):
+def verify_sign(message, signature, key):
 	# Load the verifying key, message, and signature and verify the signature (assume SHA-1 hash):
 
-	wallet, own_key = load_keys(store, name)
-	vk = VerifyingKey.from_der(b64decode(own_key['public']))
+	vk = VerifyingKey.from_der(b64decode(key['public']))
 	sig = b64decode(signature)
 	try:
 		vk.verify(sig, message)
@@ -71,28 +70,60 @@ def verify_sign(message, signature, store, name):
 		print("BAD SIGNATURE")
 	return False
 
+def time_base64():
+	return int2base64(int(datetime.datetime.utcnow().timestamp()))
 
-def verify_message(msg):
+def unix_time():
+	return int(datetime.datetime.utcnow().timestamp())
+
+def verify_message(msg,modreq):
 	''' verify received content. msg is a list containing
 
 	Args:
 			msg[0] (:obj:`str`): 10 char hex SHA1 hash of id of requestor
-			msg[1] (:obj:`str`): 10 char hex SHA1 hash of id of signed authority (= also lookup index for public key )
-			msg[2] (:obj:`str`): The integer Unix UTC seconds time stamp base63 coded as shown in https://stackoverflow.com/a/55354665
-			msg[3] (:obj:`str`): base64 encoded signature of msg[0] + ':'+msg[1]+':'+[2]
-			msg[4] (:obj:`str`): to be discussed: optional identifier of reason (e.g. packet delivery confirmation ??)
+			msg[1] (:obj:`str`): 10 char hex SHA1 hash of id of receiver
+			msg[2] (:obj:`str`): 10 char hex SHA1 hash of id of signed authority (= also lookup index for public key )
+			msg[3] (:obj:`str`): The integer Unix UTC seconds time stamp base63 coded as shown in https://stackoverflow.com/a/55354665
+			msg[4] (:obj:`str`): base64 encoded signature of msg[0] + ':'+msg[1]+':'+[2]+':'+[3]
+			msg[5] (:obj:`str`): to be discussed: optional identifier of reason (e.g. packet delivery confirmation ??)
 
 
 	'''
-	pass
+	if len(msg)<5:
+		print('illegal token format')
+		return False
+	receiver=modreq.messenger.messenger.myself()['username']
+	if msg[1]!=hash(receiver.encode()): # wrong receipient :-)
+		return False
+	authority_id=msg[2]
+	wallet = modreq.store.read_config_value('wallet')
+	if not wallet or not authority_id in wallet: # unknown authority
+		return False
+	this_key=wallet[authority_id]
+	timestamp=base642int(msg[3])
+	try:
+		timeout=this_key['timeout']
+	except:
+		timeout=60 #default token lifetime 60 secs
+	if unix_time()-timeout>timestamp: # token too old
+		return False
+	message=":".join(msg[:4])
+	signature=msg[4]
+	return 	verify_sign(message.encode(), signature,this_key)
 
+
+def get_id_card_string(store, requestor,receiver, botname):
+	message=":".join([hash(requestor.encode()),hash(receiver.encode()),hash(botname.encode()),time_base64()])
+	signature = sign_bytes(message.encode(),store, botname)
+	return ":".join([message,signature])
 
 if __name__ == '__main__':
 	#key = create_keys()
 	message = "message".encode()
-	store=Storage()
+	store=Storage(None)
 	signature = sign_bytes(message,store, "Meier")
-	verify_sign(message, signature,store, "Meier")
+	wallet, key = load_keys(store, "Meier")
+	verify_sign(message, signature,key)
 	print(hash("my message".encode("UTF-8")))
 	number = int(datetime.datetime.utcnow().timestamp())
 	number_string = int2base64(number)

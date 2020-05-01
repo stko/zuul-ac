@@ -7,17 +7,17 @@ import datetime
 import queue
 from threading import Thread, Lock
 import defaults
-
+import idcard
 
 class AccessManager:
 
-	def __init__(self, store, smart_home_interface,restart_function):
-		self.store = store
+	def __init__(self, modref,restart_function):
+		self.modref = modref
 		self.mutex = Lock()
-		self.users = store.get_users()
+		self.users = self.modref.store.get_users()
 		self.queue = queue.Queue()
 		self.restart_function =restart_function
-		self.smart_home_interface = smart_home_interface
+		self.smart_home_interface = modref.server
 		self.garbage_collection(self.users['users'].copy())
 		self.current_tokens = {}
 
@@ -31,12 +31,12 @@ class AccessManager:
 				"tokenstate", {'valid': self.validate_token(data['config']['token'])})
 
 	def write_config(self, data):
-		valid_fields=self.store.config_keys()
+		valid_fields=self.modref.store.config_keys()
 		for key in valid_fields:
 			if key in data:
 				print("new config", key, data[key])
-				self.store.write_config_value(key,data[key],True)
-		self.store.save_config()
+				self.modref.store.write_config_value(key,data[key],True)
+		self.modref.store.save_config()
 		if self.restart_function:
 			self.restart_function()
 
@@ -147,7 +147,7 @@ class AccessManager:
 	def create_full_time_table(self):
 		''' helper routine to create a full packet time table for the admins'''
 		res = []
-		ttl = self.store.read_config_value('timetolive', 5)
+		ttl = self.modref.store.read_config_value('timetolive', 5)
 		for i in range(defaults.TIME_TABLE_SIZE):  # for each entry slot
 			res.append(ttl)
 		return res
@@ -184,7 +184,7 @@ class AccessManager:
 		new_user_table = {}
 		# admins are always walid
 
-		admin_list = self.store.get_admin_ids()
+		admin_list = self.modref.store.get_admin_ids()
 		for admin in admin_list:
 			new_user_table[admin] = {'user': self.users['users'][admin]
 									 ['user'], 'time_table': self.create_full_time_table()}
@@ -249,7 +249,7 @@ class AccessManager:
 			if not user_id in new_user_table or user['time_table'] != None and new_user_table[user_id]['time_table'] == None :
 				delta_users.append(user)
 		try:
-			self.store.write_users()
+			self.modref.store.write_users()
 		finally:
 			self.mutex.release()
 		return delta_users
@@ -292,6 +292,8 @@ class AccessManager:
 				otp_type = data['config']['type']
 				if data['config']['type'] != 'qrcode':
 					password_characters = data['config']['keypadchars']
+				password_characters = password_characters.replace("\"","").replace("\\","").replace(":","") # everthing but without " and :"
+
 				otp = ''.join(secrets.choice(password_characters)
 							  for i in range(stringLength))
 				self.current_tokens[otp] = datetime.datetime.now().timestamp(
@@ -313,9 +315,18 @@ class AccessManager:
 				to_del.append(old_token)
 		for old_token in to_del:
 			del(self.current_tokens[old_token])
+
+		# is is a service token?
+		if token[:2]=="zm" and ':' in token: # is is a service token?
+			return idcard.verify_message(token.split(':')[1:],self.modref)
 		if not token in self.current_tokens:
 			return False
 		timestp = self.current_tokens[token]
 		if timestp < now:  # is the token expired already?
 			return False
 		return True
+
+	def request_id_card(self,user,receiver, botname):
+		token=idcard.get_id_card_string(self.modref.store, str(self.user_id(user)),receiver, botname)
+		print("generated token",token)
+		return "zm:"+token

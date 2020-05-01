@@ -9,45 +9,52 @@ from messenger import Messenger
 import zuullogger
 
 
-# https://inventwithpython.com/blog/2014/12/20/translate-your-python-3-program-with-the-gettext-module/
-'''
-import gettext
-localedir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'locale')
-translate = gettext.translation('guess', localedir, fallback=True)
-_ = translate.gettext
-'''
-_ = lambda s: s
+class ModRef:
+	def __init__(self):
+		self.server = None
+		self.accessmanager = None
+		self.messenger = None
+		self.store = None
+
+
+def _(s): return s
+
 
 messenger = None
 
+
 def restart():
-	global messenger
-	global store
+	global modref
 
 	print('try to restart')
-	if messenger:
-		messenger.shutdown()
-	messenger_token=store.read_config_value("messenger_token")
-	messenger_type=store.read_config_value("messenger_type")
-	print(messenger_token,messenger_type )
+	if modref.messenger:
+		modref.messenger.shutdown()
+	messenger_token = modref.store.read_config_value("messenger_token")
+	messenger_type = modref.store.read_config_value("messenger_type")
+	print(messenger_token, messenger_type)
 	if messenger_token and messenger_type:
-		messenger= Messenger(messenger_type,messenger_token,am)
+		modref.messenger = Messenger(messenger_type, messenger_token, modref.accessmanager)
 	else:
-		logger.error(_("Config incomplete: No messenger_token or messenger_type"))
+		logger.error(
+			_("Config incomplete: No messenger_token or messenger_type"))
 	print('restarted')
 
-logger = zuullogger.getLogger(__name__)
-store = storage.Storage()
-server=webserver.ws_create(store)
 
-am= accessmanager.AccessManager(store,server,restart)
-server.register("ac_",None,am.msg,am.dummy,am.dummy)
-server.register("st_",None,store.msg,store.dummy,store.dummy)
+modref = ModRef()
+logger = zuullogger.getLogger(__name__)
+modref.store = storage.Storage(modref)
+modref.server = webserver.ws_create(modref)
+
+modref.accessmanager = accessmanager.AccessManager(
+	modref, restart)
+modref.server.register("ac_", None, modref.accessmanager.msg,
+					   modref.accessmanager.dummy, modref.accessmanager.dummy)
+modref.server.register("st_", None, modref.store.msg,
+					   modref.store.dummy, modref.store.dummy)
 
 
 restart()
-webserver.ws_thread(server)
+webserver.ws_thread(modref.server)
 
 while(True):
 	time.sleep(1)
-

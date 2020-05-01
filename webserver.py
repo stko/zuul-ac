@@ -123,8 +123,8 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 			user.ws.emit(topic, data)
 
 
-def ws_create(storage):
-	server_config = storage.read_config_value("server_config")
+def ws_create(modref):
+	server_config = modref.store.read_config_value("server_config")
 	if not server_config:
 		server_config = {
 			'host': 'any',
@@ -132,7 +132,7 @@ def ws_create(storage):
 			'secure': False,
 			'credentials': ''
 		}
-	storage.write_config_value("server_config", server_config)
+	modref.store.write_config_value("server_config", server_config)
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--host", default=server_config["host"],
