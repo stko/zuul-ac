@@ -10,6 +10,7 @@ import secrets
 import zuullogger
 from user import User
 from io import BytesIO
+import urllib
 
 import translate
 # _ = translate.gettext
@@ -125,7 +126,6 @@ class ZuulMessengerPlugin:
 		# on different commands - answer in Telegram
 		dp.add_handler(CommandHandler("start", self.new_pin))
 		dp.add_handler(CommandHandler("help", self.help))
-		dp.add_handler(CommandHandler("idc", self.idcard))
 		dp.add_handler(CallbackQueryHandler(
 			self.button, pass_update_queue=True))
 		# handler when user shares a contact
@@ -234,7 +234,10 @@ class ZuulMessengerPlugin:
 		# known user?
 		if self.access_manager.user_is_active(
 			user_context.user) != None:
-			self.send_image(update,context, query)
+			if context.args:
+				self.idcard( user_context,urllib.parse.unquote(context.args[0]))
+			else:
+				self.send_image(update,context, query)
 		self.menu_main(update, context, query)
 
 	def menu_help(self, update, context, query):
@@ -250,11 +253,11 @@ class ZuulMessengerPlugin:
 		update.message.reply_text(user_context._('Go to the Online Manual'))
 		self.menu_help(update, context, None)
 
-	def idcard(self, update, context):
+	def idcard(self, user_context,door_bot_name):
 		"""Send a idcard."""
-		user_context = UserContext.get_user_context(update,context,None) 
-		id_card=self.access_manager.request_id_card(user_context.user,self.myself()['username'], self.myself()['username'])
-		#update.message.reply_text('id token:'+id_card)
+		own_bot_username=self.myself()['username']
+		id_card=self.access_manager.request_id_card(user_context.user,door_bot_name, own_bot_username)
+
 
 		qr = qrcode.QRCode(
 			version=1,
@@ -271,7 +274,7 @@ class ZuulMessengerPlugin:
 		bio.name = 'image.jpeg'
 		img.save(bio, 'PNG')
 		bio.seek(0)
-		msg_text="Bang!"
+		msg_text=user_context._('Digital ID Card from {0}- Just present it to the door camera to open the door').format(own_bot_username)
 		'''
 		if otp['msg']:
 			msg_text = otp['msg']
@@ -281,11 +284,7 @@ class ZuulMessengerPlugin:
 		'''
 		user_context.msg.reply_text(
 			msg_text)
-		#update.message.reply_photo( photo= open('qr-code.png', 'rb'))
 		user_context.msg.reply_photo(photo=bio)
-
-
-
 
 	def add_follower_callback(self, update, context, query):
 		'''adds a new user'''
@@ -293,7 +292,7 @@ class ZuulMessengerPlugin:
 		if user_context.new_contact and user_context.user:
 			changed_users = self.access_manager.add_user(
 				user_context.user, user_context.new_contact)
-			keyboard = [[InlineKeyboardButton(user_context._("Start"), callback_data='main')]]
+			keyboard = [[InlineKeyboardButton('🚪'+self.myself()['first_name'], callback_data='main')]]
 			reply_markup = InlineKeyboardMarkup(keyboard)
 			for user in changed_users:
 				try:
@@ -355,7 +354,7 @@ class ZuulMessengerPlugin:
 		user_context = UserContext.get_user_context(update,context,query) 
 		user_context.last_follower_pos = self.fill_list(
 			query.data, self.access_manager.get_follower_list, self.delete_follower_by_list_item, self.list_follower_callback, user_context)
-		user_context.add_keyboard_item(user_context._('Key Management'), "menu",
+		user_context.add_keyboard_item('🔑'+user_context._('Key Management'), "menu",
 							   self.menu_menu, True)
 		reply_markup = user_context.compile_keyboard()
 		user_context.msg.reply_text(user_context._('Choose the Key to get back'),
@@ -365,7 +364,7 @@ class ZuulMessengerPlugin:
 		user_context = UserContext.get_user_context(update,context,query) 
 		user_context.last_follower_pos = self.fill_list(
 			query.data, self.access_manager.get_sponsor_list, self.delete_sponsor_by_list_item, self.list_sponsor_callback, user_context)
-		user_context.add_keyboard_item(user_context._('Key Management'), "menu",
+		user_context.add_keyboard_item('🔑'+user_context._('Key Management'), "menu",
 							   self.menu_menu, True)
 		reply_markup = user_context.compile_keyboard()
 		user_context.msg.reply_text(user_context._('Choose the Key to get back'),
@@ -403,30 +402,30 @@ class ZuulMessengerPlugin:
 	def menu_menu(self, update, context, query):
 		user_context = UserContext.get_user_context(update,context,query) 
 		user_context.clear_keyboard()
-		user_context.add_keyboard_item(user_context._("Get lend Keys back"), "-1",  # the minus -1 is to make the index unique
+		user_context.add_keyboard_item('👤⬅👥 '+user_context._("Get lend Keys back"), "-1",  # the minus -1 is to make the index unique
 							   self.list_follower_callback, True)
-		user_context.add_keyboard_item(user_context._("Return borrowed Keys"), "-2",  # the minus -2 is to make the index unique
+		user_context.add_keyboard_item('⬅👤 '+user_context._("Return borrowed Keys"), "-2",  # the minus -2 is to make the index unique
 							   self.list_sponsor_callback, True)
-		user_context.add_keyboard_item(user_context._("About this Program"), "help",
+		user_context.add_keyboard_item('🕮'+user_context._("About this Program"), "help",
 							   self.menu_help, True)
-		user_context.add_keyboard_item(user_context._("Overview"), "goto_main",
+		user_context.add_keyboard_item('🚪'+self.myself()['first_name'], "goto_main",
 							   self.menu_main, True)
 		reply_markup = user_context.compile_keyboard()
-		user_context.msg.reply_text(user_context._('Key Management'), reply_markup=reply_markup)
+		user_context.msg.reply_text('🔑'+user_context._('Key Management'), reply_markup=reply_markup)
 
 	def menu_main(self, update, context, query):
 		user_context = UserContext.get_user_context(update,context,query) 
 		user_context.clear_keyboard()
 		# known user?
 		if self.access_manager.user_is_active(user_context.user) != None:
-			text_info = user_context._('Overview')
+			text_info = '🚪'+self.myself()['first_name']
 			user_context.add_keyboard_item(user_context._("New Pin"), "dummy",
 								   self.menu_new_pin, True)
-			user_context.add_keyboard_item(user_context._("Key Management"), "menu",
+			user_context.add_keyboard_item('🔑'+user_context._("Key Management"), "menu",
 								   self.menu_menu, True)
 		else:
 			text_info = user_context._('Unknown User! ({0})').format(self.access_manager.user_id(user_context.user))
-			user_context.add_keyboard_item(user_context._("About this Program"), "help",
+			user_context.add_keyboard_item('🕮'+user_context._("About this Program"), "help",
 								   self.menu_help, True)
 
 		reply_markup = user_context.compile_keyboard()
@@ -436,9 +435,9 @@ class ZuulMessengerPlugin:
 
 		user_context = UserContext.get_user_context(update,context,None) 
 		user_context.clear_keyboard()
-		user_context.add_keyboard_item(user_context._("Lend Key"), "add",
+		user_context.add_keyboard_item('👤➡👥 '+user_context._("Lend Key"), "add",
 							   self.add_follower_callback, True)
-		user_context.add_keyboard_item(user_context._('Overview'), "goto_main",
+		user_context.add_keyboard_item('🚪'+self.myself()['first_name'], "goto_main",
 							   self.menu_main, True)
 		reply_markup = user_context.compile_keyboard()
 
@@ -451,7 +450,7 @@ class ZuulMessengerPlugin:
 		user_context.clear_keyboard()
 		user_context.add_keyboard_item(user_context._("Bring Back"), self.access_manager.user_id(user),
 							   self.delete_follower_callback, True)
-		user_context.add_keyboard_item(user_context._('Overview'), "goto_main",
+		user_context.add_keyboard_item('🚪'+self.myself()['first_name'], "goto_main",
 							   self.menu_main, True)
 		reply_markup = user_context.compile_keyboard()
 		if update.message:
@@ -467,7 +466,7 @@ class ZuulMessengerPlugin:
 		user_context.clear_keyboard()
 		user_context.add_keyboard_item(user_context._("return"), self.access_manager.user_id(user),
 							   self.delete_sponsor_callback, True)
-		user_context.add_keyboard_item(user_context._('Overview'), "goto_main",
+		user_context.add_keyboard_item('🚪'+self.myself()['first_name'], "goto_main",
 							   self.menu_main, True)
 		reply_markup = user_context.compile_keyboard()
 		if update.message:
