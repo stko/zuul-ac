@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2020-04-28 13:07+CEST\n"
-"PO-Revision-Date: 2020-04-28 13:10+0200\n"
+"POT-Creation-Date: 2020-05-04 15:47+CEST\n"
+"PO-Revision-Date: 2020-05-04 15:54+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: de\n"
@@ -17,7 +17,7 @@ msgstr ""
 "X-Generator: Poedit 2.0.6\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: m_telegram.py:192
+#: m_telegram.py:198
 msgid ""
 "This Pin is valid for {0} seconds - Just present it to the door camera to "
 "open the door"
@@ -25,123 +25,149 @@ msgstr ""
 "Dieser Pin ist für {0} Sekunden gültig- Halte ihn einfach vor die Tür- "
 "Kamera um die Tür zu öffnen"
 
-#: m_telegram.py:202
+#: m_telegram.py:208
 msgid "This Pin {1} is valid for {0} seconds"
 msgstr "Dieser Pin {1] ist für {0} Sekunden gültig"
 
-#: m_telegram.py:211
+#: m_telegram.py:217
 msgid "You won't let in just now. Please try again at another time"
 msgstr ""
 "Du wirst jetzt nicht eingelassen. Bitte versuche es zu einem anderen "
 "Zeitpunkt noch einmal"
 
-#: m_telegram.py:239
+#: m_telegram.py:247
 msgid "http://koehlers.de/wiki/doku.php?id=misc:zuulac:usage_de"
 msgstr "http://koehlers.de/wiki/doku.php?id=misc:zuulac:usage_de"
 
-#: m_telegram.py:244
+#: m_telegram.py:253
 msgid "Go to the Online Manual"
 msgstr "Öffne das Online - Handbuch"
 
-#: m_telegram.py:253
-msgid "Start"
-msgstr "Start"
+#: m_telegram.py:277
+msgid ""
+"Digital ID Card from {0}- Just present it to the door camera to open the door"
+msgstr ""
+"Digitaler Ausweis von {0} - Halte ihn einfach vor die Tür- Kamera um die Tür "
+"zu öffnen"
 
-#: m_telegram.py:257
+#: m_telegram.py:299
 msgid "You got a key. You can open the door now"
 msgstr "Du hast einen Schlüssel bekommen. Du kannst die Tür jetzt öffnen"
 
-#: m_telegram.py:261
+#: m_telegram.py:303
 msgid "Key lend to {0} {1}"
 msgstr "Du hast den Schlüssel an {0} {1} verliehen"
 
-#: m_telegram.py:264 m_telegram.py:285 m_telegram.py:298
+#: m_telegram.py:306 m_telegram.py:327 m_telegram.py:340
 msgid "Something went wrong"
 msgstr "Irgendwas ging schief"
 
-#: m_telegram.py:277
+#: m_telegram.py:319
 msgid "Your key was revoked. You can not open the door anymore"
 msgstr ""
 "Dein Schlüssel wurde zurück geholt. Du kannst die Tür nicht mehr öffnen"
 
-#: m_telegram.py:282
+#: m_telegram.py:324
 msgid "Key brought back from {0} {1}"
 msgstr "Du hast den Schlüssel von {0} {1} zurück geholt"
 
-#: m_telegram.py:295
+#: m_telegram.py:337
 msgid "Key returned to {0} {1}"
 msgstr "Du hast den Schlüssel an {0} {1} zurück gegeben"
 
-#: m_telegram.py:315 m_telegram.py:325 m_telegram.py:372 m_telegram.py:382
+#: m_telegram.py:357 m_telegram.py:367 m_telegram.py:416 m_telegram.py:435
 msgid "Key Management"
 msgstr "Schlüssel- Verwaltung"
 
-#: m_telegram.py:318 m_telegram.py:328
+#: m_telegram.py:360 m_telegram.py:370
 msgid "Choose the Key to get back"
 msgstr "Wähle den Schlüssel zum Zurückholen"
 
-#: m_telegram.py:363
+#: m_telegram.py:405
+msgid "Lend this Key"
+msgstr "Verleihe diesen Schlüssel"
+
+#: m_telegram.py:407
 msgid "Get lend Keys back"
 msgstr "Hole ausgeliehene Schlüssel zurück"
 
-#: m_telegram.py:365
+#: m_telegram.py:409
 msgid "Return borrowed Keys"
 msgstr "Gebe geliehene Schlüssel zurück"
 
-#: m_telegram.py:367 m_telegram.py:386
+#: m_telegram.py:411 m_telegram.py:439
 msgid "About this Program"
 msgstr "Über dieses Programm"
 
-#: m_telegram.py:369 m_telegram.py:379 m_telegram.py:398 m_telegram.py:411
-#: m_telegram.py:427
-msgid "Overview"
-msgstr "Übersicht"
+#: m_telegram.py:421
+msgid ""
+"To lend a key\n"
+"- Go to your telegram contacts\n"
+"- select the contact to lend to\n"
+"- select his context menu\n"
+"- choose \"share to\"\n"
+"- share the contact to this door bot\n"
+"- follow the instructions to finish"
+msgstr ""
+"Um einen Schlüssel zu verleihen\n"
+"- Gehe zu Deinen Telegram Kontaken\n"
+"- Wähle den Kontakt aus, dem Du den Schlüssel leihen willst\n"
+"- Wähle sein Kontext- Menü\n"
+"-Wähle \"Kontakt teilen\"\n"
+"- Teile den Kontakt mit diesem Zuul-Bot\n"
+"- folge den weiteren Anweisungen"
 
-#: m_telegram.py:380
+#: m_telegram.py:433
 msgid "New Pin"
 msgstr "Neuer Pin"
 
-#: m_telegram.py:385
-msgid "Unknown User!"
-msgstr "Unbekannter Benutzer!"
+#: m_telegram.py:438
+msgid "Unknown User! ({0})"
+msgstr "Unbekannter Benutzer! ({0})"
 
-#: m_telegram.py:396
+#: m_telegram.py:449
 msgid "Lend Key"
 msgstr "Verleihe den Schlüssel"
 
-#: m_telegram.py:403
+#: m_telegram.py:456
 msgid "Ok to lend the Key to {0} {1}?"
 msgstr "Willst Du den Schlüssel an {0} {1} verleihen?"
 
-#: m_telegram.py:409
+#: m_telegram.py:462
 msgid "Bring Back"
 msgstr "Hole ihn zurück"
 
-#: m_telegram.py:419
+#: m_telegram.py:472
 msgid "Ok to bring back the key from {0} {1}?"
 msgstr "Willst Du den Schlüssel von {0} {1} zurückholen?"
 
-#: m_telegram.py:425
+#: m_telegram.py:478
 msgid "return"
 msgstr "Zurück"
 
-#: m_telegram.py:435
+#: m_telegram.py:488
 msgid "Ok to return the key to {0} {1}?"
 msgstr "Willst Du den Schlüssel an {0} {1} zurückgeben?"
 
-#: m_telegram.py:450
+#: m_telegram.py:503
 msgid "You can not lend your key further"
 msgstr "Du kannst Deinen Schlüssel nicht weiter verleihen"
 
-#: m_telegram.py:467
+#: m_telegram.py:520
 msgid "You wrote:"
 msgstr "Du hast geschrieben:"
 
-#: messenger.py:55 zuulac.py:36
+#: messenger.py:55 zuulac.py:38
 msgid "Config incomplete: No messenger_token or messenger_type"
 msgstr ""
 "Konfiguration unvollständig: Messenger Token oder Messenger Type nicht "
 "gesetzt"
+
+#~ msgid "Start"
+#~ msgstr "Start"
+
+#~ msgid "Overview"
+#~ msgstr "Übersicht"
 
 #~ msgid "Commands"
 #~ msgstr "Befehle"

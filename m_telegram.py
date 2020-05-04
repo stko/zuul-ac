@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 import qrcode
 import string
@@ -402,6 +402,8 @@ class ZuulMessengerPlugin:
 	def menu_menu(self, update, context, query):
 		user_context = UserContext.get_user_context(update,context,query) 
 		user_context.clear_keyboard()
+		user_context.add_keyboard_item('👤➡👥 '+user_context._("Lend this Key"), "goto_lend", 
+							   self.lend_key_callback, True)
 		user_context.add_keyboard_item('👤⬅👥 '+user_context._("Get lend Keys back"), "-1",  # the minus -1 is to make the index unique
 							   self.list_follower_callback, True)
 		user_context.add_keyboard_item('⬅👤 '+user_context._("Return borrowed Keys"), "-2",  # the minus -2 is to make the index unique
@@ -412,6 +414,15 @@ class ZuulMessengerPlugin:
 							   self.menu_main, True)
 		reply_markup = user_context.compile_keyboard()
 		user_context.msg.reply_text('🔑'+user_context._('Key Management'), reply_markup=reply_markup)
+
+	def lend_key_callback(self, update, context, query):
+		'''gives some help text how to lend a key'''
+		user_context = UserContext.get_user_context(update,context,query) 
+		user_context.msg.reply_text(user_context._('To lend a key\n- Go to your telegram contacts\n- select the contact to lend to\n- select his context menu\n- choose "share to"\n- share the contact to this door bot\n- follow the instructions to finish'))
+		self.menu_menu(update, context, query)
+
+
+
 
 	def menu_main(self, update, context, query):
 		user_context = UserContext.get_user_context(update,context,query) 
