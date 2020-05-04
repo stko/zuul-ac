@@ -24,8 +24,10 @@ github_username:  stko
 repository: https://github.com/stko/zuul-ac
 
 # Build settings
+
 markdown: GFM
-theme: minima
+theme: jekyll-theme-cayman
+
 plugins:
   - jekyll-feed
 
