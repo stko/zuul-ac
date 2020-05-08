@@ -13,6 +13,20 @@ var app = new Vue({
 		self.scanner = new Instascan.Scanner({ video: document.getElementById('preview'), scanPeriod: 5 });
 		self.scanner.addListener('scan', function (content, image) {
 			self.scans.unshift({ date: +(Date.now()), content: content });
+			// Created a URL object using URL() method 
+			var parser = new URL(content); 
+			if (self.activeServiceId){
+				if(parser.protocol=="https:" && (parser.host=="t.me"||parser.host=="telegram.me")){
+					var botName=parser.pathname
+					console.log("botName",botName); 
+					if (botName){
+						newURL="https://t.me/"+self.services[self.activeServiceId].bot+"?start="+botName.substr(1)
+						console.log('newURL',newURL)
+						window.open( 
+              newURL,"_self")
+					}
+				}
+			}
 		});
 		Instascan.Camera.getCameras().then(function (cameras) {
 			self.cameras = cameras;

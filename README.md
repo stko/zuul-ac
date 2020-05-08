@@ -24,3 +24,13 @@ Zuul is no standalone program, it's been made to work with many of todays Smart 
 
 
 All further Details are in the [Zuul Wiki](https://github.com/stko/zuul-ac/wiki/en_start)
+
+
+# Status of this Software
+The status of this software is 'it works for me' - which means not everything, which is possible, is already finally implemented.
+
+This is just because I personally do not need more as that what is working today, so I didn't want to put more efforts as long there are not more users really using it
+
+
+## Commercial use?
+Yes, please - the idea of zuul is to have a common principle for as many doors as possible, so if you want to make your product better by offering zuul for your customers too, please feel free to do so

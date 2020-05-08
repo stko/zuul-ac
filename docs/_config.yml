@@ -13,18 +13,17 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-title: Zuulac - Your virtual House Keys Manager
+title: Zuulac - Your virtual Door Keys Manager
 # email: your-email@
 description: >- # this means to ignore newlines until "baseurl:"
-  zuul-ac a telegram bot addon for smart home systems to share virtual House keys via Messenger
+  A Telegram Bot Add-On for Smart Home Systems to share virtual Door keys via Messenger
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 # twitter_username: jekyllrb
 github_username:  stko
-repository: https://github.com/stko/zuul-ac
+repository: stko/zuul-ac
 
 # Build settings
-
 markdown: GFM
 theme: jekyll-theme-cayman
 
