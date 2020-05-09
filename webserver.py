@@ -125,15 +125,6 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 def ws_create(modref):
 	server_config = modref.store.read_config_value("server_config")
-	if not server_config:
-		server_config = {
-			'host': 'any',
-			'port': 8000,
-			'secure': False,
-			'credentials': ''
-		}
-	modref.store.write_config_value("server_config", server_config)
-
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--host", default=server_config["host"],
 						help="the IP interface to bound the server to")

@@ -68,6 +68,7 @@ class AccessManager:
 			if key in data:
 				logger.debug("new config {0} {1}".format(key, repr(data[key])))
 				self.modref.store.write_config_value(key, data[key], True)
+		self.modref.store.create_new_admins_if_any()
 		self.modref.store.save_config()
 		if self.restart_function:  # restart bot
 			self.restart_function()
@@ -264,20 +265,6 @@ class AccessManager:
 				return False
 		return True
 
-	def create_full_time_table(self):
-		''' helper routine to create a full packet time table for the admins
-
-		Return:
-		time_table dict
-		'''
-
-		res = []
-		ttl = self.modref.store.read_config_value(
-			'timetolive', defaults.TIME_TO_LIVE)
-		for i in range(defaults.TIME_TABLE_SIZE):  # for each entry slot
-			res.append(ttl)
-		return res
-
 	def calculate_follower_time_table(self, sponsor_table, ruleset, follower_table):
 		''' overlays time tables
 
@@ -332,10 +319,10 @@ class AccessManager:
 		admin_list = self.modref.store.get_admin_ids()
 		for admin in admin_list:
 			new_user_table[admin] = {'user': self.users['users'][admin]
-									 ['user'], 'time_table': self.create_full_time_table()}
+									 ['user'], 'time_table': self.modref.store.create_full_time_table()}
 			# after startup the admins do not have a valid full time table, so we correct this here
 			if not self.users['users'][admin]['time_table']:
-				self.users['users'][admin]['time_table'] = self.create_full_time_table()
+				self.users['users'][admin]['time_table'] = self.modref.store.create_full_time_table()
 
 		for user_id in self.users['timetables']:  # go through all sponsor users
 			# go through all the users time_tables

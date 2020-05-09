@@ -4,7 +4,7 @@ COPY *.py ./
 COPY public ./public
 COPY locale ./locale
 
-RUN pip install qrcode[pil] python-telegram-bot 
+RUN mkdir config && pip install qrcode[pil] python-telegram-bot ecdsa
 
 CMD [ "python", "./zuulac.py" ]
 

@@ -7,6 +7,7 @@ import json
 import zuullogger
 import translate
 import user
+import defaults
 
 _ = translate.gettext
 
@@ -89,9 +90,9 @@ Format of config.json:
 		self.modref = modref
 		self.users = {'users': {}, 'timetables': {}}  # just empty lists
 		self.config_file_name = os.path.join(
-			os.path.dirname(__file__), 'config.json')
+			os.path.dirname(__file__), defaults.CONFIG_FILE)
 		self.users_file_name = os.path.join(
-			os.path.dirname(__file__), 'users.json')
+			os.path.dirname(__file__), defaults.USER_DATA_FILE)
 
 		try:
 			with open(self.config_file_name) as json_file:
@@ -99,7 +100,22 @@ Format of config.json:
 
 		except:
 			logger.warning(
-				"couldn't load config file {0}".format(config_file_name))
+				"couldn't load config file {0}".format(self.config_file_name))
+			self.config={
+				"admins": [
+				],
+				"messenger_token": "",
+				"messenger_type": "telegram",
+				"server_config": {
+					"credentials": "",
+					"host": "0.0.0.0",
+					"port": 8000,
+					"secure": False
+				},
+				"timetolive": 5,
+				"wallet": {
+				}
+			}
 
 		try:
 			with open(self.users_file_name) as json_file:
@@ -108,11 +124,30 @@ Format of config.json:
 		except:
 			logger.warning("couldn't load users file {0}".format(
 				self.users_file_name))
+		self.create_new_admins_if_any()
+
+	def create_new_admins_if_any(self):
 		# copy admin acounts into the user list, if not already in
 		for admin in self.get_admin_ids():
 			if not admin in self.users['users']:
 				self.users['users'][admin] = {'user': user.User(
-					'Alice', 'Admin', admin, 'en'), 'time_table': None}
+					'Alice', 'Admin', admin, 'en'), 'time_table': self.create_full_time_table()}
+
+	def create_full_time_table(self):
+		''' helper routine to create a full packet time table for the admins
+
+		Return:
+		time_table dict
+		'''
+
+		res = []
+		ttl = self.read_config_value(
+			'timetolive', defaults.TIME_TO_LIVE)
+		for i in range(defaults.TIME_TABLE_SIZE):  # for each entry slot
+			res.append(ttl)
+		return res
+
+
 
 	def config_keys(self):
 		'''provides config values allowed to change by the web interface

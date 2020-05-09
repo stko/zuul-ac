@@ -9,3 +9,5 @@ FORECAST_DAYS = 7  # how many days are in the time table
 TIME_TABLE_SIZE = 1
 TIME_TO_LIVE = 5  # how often a key can be lend further forward
 SMART_HOME_TIMEOUT = 2.0 # secs to wait for an answer from smart home interface
+CONFIG_FILE = 'config/config.json'
+USER_DATA_FILE = 'config/users.json'
