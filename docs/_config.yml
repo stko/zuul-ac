@@ -17,8 +17,8 @@ title: Zuulac - Your virtual Door Keys Manager
 # email: your-email@
 description: >- # this means to ignore newlines until "baseurl:"
   A Telegram Bot Add-On for Smart Home Systems to share virtual Door keys via Messenger
-baseurl: "" # the subpath of your site, e.g. /blog
-url: "" # the base hostname & protocol for your site, e.g. http://example.com
+baseurl: "/zuul-ac" # the subpath of your site, e.g. /blog
+url: "https://stko.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 # twitter_username: jekyllrb
 github_username:  stko
 repository: stko/zuul-ac
