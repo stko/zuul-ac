@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2020-05-04 15:47+CEST\n"
-"PO-Revision-Date: 2020-05-04 15:54+0200\n"
+"POT-Creation-Date: 2020-05-15 14:30+CEST\n"
+"PO-Revision-Date: 2020-05-15 16:51+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: de\n"
@@ -36,8 +36,8 @@ msgstr ""
 "Zeitpunkt noch einmal"
 
 #: m_telegram.py:247
-msgid "http://koehlers.de/wiki/doku.php?id=misc:zuulac:usage_de"
-msgstr "http://koehlers.de/wiki/doku.php?id=misc:zuulac:usage_de"
+msgid "https://stko.github.io/zuul-ac/"
+msgstr "https://github.com/stko/zuul-ac/index_de.html"
 
 #: m_telegram.py:253
 msgid "Go to the Online Manual"
@@ -110,10 +110,10 @@ msgid ""
 "- follow the instructions to finish"
 msgstr ""
 "Um einen Schlüssel zu verleihen\n"
-"- Gehe zu Deinen Telegram Kontaken\n"
+"- Gehe zu Deinen Telegram Kontakten\n"
 "- Wähle den Kontakt aus, dem Du den Schlüssel leihen willst\n"
 "- Wähle sein Kontext- Menü\n"
-"-Wähle \"Kontakt teilen\"\n"
+"- Wähle \"Kontakt teilen\"\n"
 "- Teile den Kontakt mit diesem Zuul-Bot\n"
 "- folge den weiteren Anweisungen"
 
@@ -163,6 +163,9 @@ msgstr ""
 "Konfiguration unvollständig: Messenger Token oder Messenger Type nicht "
 "gesetzt"
 
+#~ msgid "http://koehlers.de/wiki/doku.php?id=misc:zuulac:usage_de"
+#~ msgstr "http://koehlers.de/wiki/doku.php?id=misc:zuulac:usage_de"
+
 #~ msgid "Start"
 #~ msgstr "Start"
 
@@ -177,9 +180,6 @@ msgstr ""
 
 #~ msgid "Main Menu"
 #~ msgstr "Haupt- Menü"
-
-#~ msgid "https://github.com/stko/zuul-ac"
-#~ msgstr "https://github.com/stko/zuul-ac"
 
 #~ msgid "Main"
 #~ msgstr "Haupt-Menü"
