@@ -30,7 +30,7 @@ from http.server import HTTPServer
 from io import StringIO
 
 
-class User:
+class WebsocketUser:
 	'''handles all user related data
 	'''
 
@@ -46,6 +46,9 @@ ws_clients = []
 class WSZuulHandler(HTTPWebSocketsHandler):
 
 	def get_module(self, prefix):
+		'''returns registered module by name
+		'''
+
 		global modules
 		try:
 			return modules[prefix]
@@ -53,10 +56,27 @@ class WSZuulHandler(HTTPWebSocketsHandler):
 			return None
 
 	def emit(self, type, config):
+		''' sends data object as JSON string to websocket client
+
+		Args:
+		type (:obj:`str`): string identifier of the contained data type
+		config (:obj:`obj`): data object to be sent
+		'''
+
 		message = {'type': type, 'config': config}
 		self.send_message(json.dumps(message))
 
 	def on_ws_message(self, message):
+		''' distributes incoming messages to the registered modules
+
+		the receiver is identified by the prefix of the message 'type'
+
+		the modules register their prefix during the 'register' function
+
+		Args:
+				message (:obj:`str`): json string, representing object with 'type' as identifier and 'config' containing the data
+		'''
+
 		if message is None:
 			message = ''
 		#self.log_message('websocket received "%s"', str(message))
@@ -81,8 +101,10 @@ class WSZuulHandler(HTTPWebSocketsHandler):
 				self.log_message("Command not found:"+data['type'])
 
 	def on_ws_connected(self):
-		self.log_message('%s', 'websocket connected')
-		self.user = User("", self)
+		''' informs all registered modules on websocket connect about that new connection
+		'''
+		#self.log_message('%s', 'websocket connected')
+		self.user = WebsocketUser("", self)
 		global ws_clients
 		ws_clients.append(self.user)
 		global modules
@@ -90,27 +112,45 @@ class WSZuulHandler(HTTPWebSocketsHandler):
 			module["onWebSocketOpen"](self.user)
 
 	def on_ws_closed(self):
-		self.log_message('%s', 'websocket closed')
+		''' informs all registered modules on websocket close about the closed connection
+		'''
+
+		#self.log_message('%s', 'websocket closed')
 		global ws_clients
 		ws_clients.remove(self.user)
 		global modules
-		# for module in modules.values():
 		for module_name, module in modules.items():
 			module["onWebSocketClose"](self.user)
 
 	def setup(self):
+		'''initialise the websocket
+		'''
+
 		super(HTTPWebSocketsHandler, self).setup()
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
-	"""Handle requests in a separate thread."""
+	'''Threaded HTTP and Websocket server'''
 
 	def register(self, prefix, module, wsMsghandler, wsOnOpen, wsOnClose):
+		''' register other modules as Websocket message consumers
+
+		Args:
+		prefix (:obj:`string`): hash containing all active users as copy
+		module (:obj:`obj`): hash containing all active users as copy
+		wsMsghandler (:obj:`function`): the callback function when receiving a message
+		wsOnOpen (:obj:`function`): the callback function when a websocket connects
+		wsOnClose (:obj:`function`):: the callback function when a websocket closes
+		'''
+
 		global modules
 		modules[prefix] = {'module': module, 'msg': wsMsghandler,
 						   'onWebSocketOpen': wsOnOpen, 'onWebSocketClose': wsOnClose}
 
 	def get_module(self, prefix):
+		'''returns registered module by name
+		'''
+
 		global modules
 		try:
 			return modules[prefix]
@@ -118,13 +158,19 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 			return None
 
 	def emit(self, topic, data):
+		'''broadcasts a message to all connected websocket clients
+		'''
 		global ws_clients
 		for user in ws_clients:
 			user.ws.emit(topic, data)
 
 
 def ws_create(modref):
+	''' creates the HTTP and websocket server
+	'''
+	# reads the config, if any
 	server_config = modref.store.read_config_value("server_config")
+	# set up the argument parser with values from the config
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--host", default=server_config["host"],
 						help="the IP interface to bound the server to")
@@ -135,7 +181,6 @@ def ws_create(modref):
 	parser.add_argument("-c", "--credentials",  default=server_config["credentials"],
 						help="user credentials")
 	args = parser.parse_args()
-	print(repr(args))
 	server = ThreadedHTTPServer((args.host, args.port), WSZuulHandler)
 	server.daemon_threads = True
 	server.auth = b64encode(args.credentials.encode("ascii"))
@@ -149,8 +194,10 @@ def ws_create(modref):
 
 
 def _ws_main(server):
-	try:
+	''' starts the server
+	'''
 
+	try:
 		origin_dir = os.path.dirname(__file__)
 		web_dir = os.path.join(os.path.dirname(__file__), 'public')
 		os.chdir(web_dir)
@@ -164,7 +211,8 @@ def _ws_main(server):
 
 
 def ws_thread(server):
-
+	''' starts the server as a seperate thread
+	'''
 	# Create a Thread with a function without any arguments
 	th = threading.Thread(target=_ws_main, args=(server,))
 	# Start the thread

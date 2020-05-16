@@ -2,8 +2,6 @@
 layout: default
 ---
 
-[german](index_de)
-
 Zuul-AC lets you share the (virtual) keys of your door with everybody who uses the Telegram messenger.
 
 
@@ -22,7 +20,7 @@ If you then return your key from one of your team leaders, all the keys he has l
 # Smart Home Integration
 Zuul is no standalone program, it's been made to work with many of todays Smart Home solutions
 
-
+# More Information?
 All further Details are in the [Zuul Wiki](https://github.com/stko/zuul-ac/wiki/en_start)
 
 

@@ -9,6 +9,9 @@ from messenger import Messenger
 import zuullogger
 
 class ModRef:
+	''' helper class to store references to the global modules
+	'''
+	
 	def __init__(self):
 		self.server = None
 		self.accessmanager = None
