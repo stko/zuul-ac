@@ -2,7 +2,7 @@
 layout: default
 ---
 
-([german](index_de.html))
+([Deutsch](index_de.html))
 
 Zuul-AC lets you share the (virtual) keys of your door with everybody who uses the Telegram messenger.
 
