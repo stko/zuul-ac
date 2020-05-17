@@ -5,7 +5,7 @@
 # setup:
 #		sudo apt-get install zbar-tools
 # 		sudo -H pip3 install paho-mqtt
-# usage
+# usage:
 #	zbarcam | python3 qr_to_mqtt.py
 
 import sys
