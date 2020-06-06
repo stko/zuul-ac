@@ -1,41 +1,41 @@
 [
     {
-        "id": "4b10bec0.8c7db",
+        "id": "32c1fd5e.098ec2",
         "type": "tab",
         "label": "Zuul- Websocket",
         "disabled": false,
         "info": ""
     },
     {
-        "id": "39bf9eb1.759532",
+        "id": "95de46d2.506628",
         "type": "websocket out",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "zuul",
         "server": "",
-        "client": "e3f261fa.2a6a8",
+        "client": "515f77cb.3da748",
         "x": 970,
         "y": 260,
         "wires": []
     },
     {
-        "id": "d449d54b.93f8e8",
+        "id": "555024da.a2d69c",
         "type": "websocket in",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "Zuul",
         "server": "",
-        "client": "e3f261fa.2a6a8",
+        "client": "515f77cb.3da748",
         "x": 90,
         "y": 240,
         "wires": [
             [
-                "b0f14098.2dba2"
+                "3c6d3630.41e21a"
             ]
         ]
     },
     {
-        "id": "a7c09a77.eee658",
+        "id": "4786210e.c8c08",
         "type": "debug",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "",
         "active": true,
         "tosidebar": true,
@@ -47,9 +47,9 @@
         "wires": []
     },
     {
-        "id": "870d63e9.811d1",
+        "id": "ed3f53ff.e57f5",
         "type": "comment",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "Client",
         "info": "",
         "x": 90,
@@ -57,9 +57,9 @@
         "wires": []
     },
     {
-        "id": "e719758f.c21f28",
+        "id": "9ed49469.3c9358",
         "type": "json",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "",
         "property": "payload",
         "action": "",
@@ -68,15 +68,15 @@
         "y": 240,
         "wires": [
             [
-                "c98d2818.750358",
-                "3fc29212.dbf0be"
+                "c262156a.4af558",
+                "a28d858a.f80338"
             ]
         ]
     },
     {
-        "id": "f41ecce5.c705d",
+        "id": "e9b01134.ce2ed",
         "type": "change",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "Set OTP Parameters",
         "rules": [
             {
@@ -138,15 +138,15 @@
         "y": 260,
         "wires": [
             [
-                "a7c09a77.eee658",
-                "39bf9eb1.759532"
+                "4786210e.c8c08",
+                "95de46d2.506628"
             ]
         ]
     },
     {
-        "id": "c98d2818.750358",
+        "id": "c262156a.4af558",
         "type": "switch",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "OTP Request",
         "property": "payload",
         "propertyType": "msg",
@@ -172,18 +172,19 @@
         "y": 240,
         "wires": [
             [
-                "f41ecce5.c705d"
+                "e9b01134.ce2ed"
             ],
             [
-                "fc5d67fb.c07708"
+                "30a96863.43b108",
+                "665b57f8.5d4768"
             ],
             []
         ]
     },
     {
-        "id": "b0f14098.2dba2",
+        "id": "3c6d3630.41e21a",
         "type": "function",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "Kill Session",
         "func": "msg._session = \"\";\nreturn msg;",
         "outputs": 1,
@@ -192,14 +193,14 @@
         "y": 240,
         "wires": [
             [
-                "e719758f.c21f28"
+                "9ed49469.3c9358"
             ]
         ]
     },
     {
-        "id": "cb9c7c74.0b6f6",
+        "id": "9d6e5f0.a99c5a",
         "type": "inject",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "TRUE",
         "topic": "A",
         "payload": "true",
@@ -212,14 +213,14 @@
         "y": 540,
         "wires": [
             [
-                "ebcc65aa.8cd9a8"
+                "4808ec97.fa80b4"
             ]
         ]
     },
     {
-        "id": "f56c5592.71fe88",
+        "id": "a7f4c80.7e8b738",
         "type": "inject",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "FALSE",
         "topic": "A",
         "payload": "false",
@@ -232,14 +233,14 @@
         "y": 600,
         "wires": [
             [
-                "ebcc65aa.8cd9a8"
+                "4808ec97.fa80b4"
             ]
         ]
     },
     {
-        "id": "ebcc65aa.8cd9a8",
+        "id": "4808ec97.fa80b4",
         "type": "rbe",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "Detect Change",
         "func": "rbe",
         "gap": "",
@@ -250,16 +251,15 @@
         "y": 560,
         "wires": [
             [
-                "5dea40ca.3bd8",
-                "99204501.645828",
-                "44b75386.1e0c1c"
+                "925f2da0.bef99",
+                "9952b919.359a08"
             ]
         ]
     },
     {
-        "id": "5dea40ca.3bd8",
+        "id": "925f2da0.bef99",
         "type": "change",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "zuul_active",
         "rules": [
             {
@@ -282,18 +282,9 @@
         ]
     },
     {
-        "id": "99204501.645828",
-        "type": "BDebug",
-        "z": "4b10bec0.8c7db",
-        "name": "Debug",
-        "x": 470,
-        "y": 680,
-        "wires": []
-    },
-    {
-        "id": "6192c65a.fc6c58",
+        "id": "f4ae387f.d10208",
         "type": "change",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "zuul_msg_Ok",
         "rules": [
             {
@@ -316,9 +307,9 @@
         ]
     },
     {
-        "id": "44b75386.1e0c1c",
+        "id": "9952b919.359a08",
         "type": "switch",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "Set OTP Message",
         "property": "payload",
         "propertyType": "msg",
@@ -337,17 +328,17 @@
         "y": 620,
         "wires": [
             [
-                "6192c65a.fc6c58"
+                "f4ae387f.d10208"
             ],
             [
-                "1a38b823.76c4d8"
+                "e274611f.2f38e"
             ]
         ]
     },
     {
-        "id": "1a38b823.76c4d8",
+        "id": "e274611f.2f38e",
         "type": "change",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "zuul_msg_Denied",
         "rules": [
             {
@@ -370,40 +361,40 @@
         ]
     },
     {
-        "id": "ba2a4d6a.151c3",
+        "id": "58cf6248.7a406c",
         "type": "websocket out",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "zuul",
         "server": "",
-        "client": "e3f261fa.2a6a8",
+        "client": "515f77cb.3da748",
         "x": 970,
         "y": 140,
         "wires": []
     },
     {
-        "id": "fedb82a0.2ea28",
+        "id": "595c27c8.759778",
         "type": "template",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "Send Token",
         "field": "payload",
         "fieldType": "msg",
         "format": "handlebars",
         "syntax": "mustache",
-        "template": "{\"type\": \"ac_tokenquery\", \"config\":{ \"token\": \"{{{payload}}}\"}}",
+        "template": "{\"type\": \"ac_tokenquery\", \"config\":{ \"token\": \"{{{payload.qrcode}}}\"}}",
         "output": "str",
         "x": 730,
         "y": 140,
         "wires": [
             [
-                "ba2a4d6a.151c3",
-                "a7c09a77.eee658"
+                "58cf6248.7a406c",
+                "4786210e.c8c08"
             ]
         ]
     },
     {
-        "id": "fc5d67fb.c07708",
+        "id": "30a96863.43b108",
         "type": "trigger",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "op1": "ON",
         "op2": "OFF",
         "op1type": "str",
@@ -418,27 +409,28 @@
         "y": 340,
         "wires": [
             [
-                "3b26e232.858fee"
+                "5769967d.e270b8",
+                "8d5f49fa.51d2e8"
             ]
         ]
     },
     {
-        "id": "3b26e232.858fee",
+        "id": "5769967d.e270b8",
         "type": "mqtt out",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "",
         "topic": "cmnd/tasmota/POWER",
         "qos": "",
         "retain": "",
-        "broker": "51e04813.b46358",
+        "broker": "ac726da0.2d3b3",
         "x": 1030,
         "y": 340,
         "wires": []
     },
     {
-        "id": "3fc29212.dbf0be",
+        "id": "a28d858a.f80338",
         "type": "debug",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "",
         "active": true,
         "tosidebar": true,
@@ -450,36 +442,121 @@
         "wires": []
     },
     {
-        "id": "ee0538eb.a73038",
+        "id": "3a7fb79f.fd3da8",
         "type": "mqtt in",
-        "z": "4b10bec0.8c7db",
+        "z": "32c1fd5e.098ec2",
         "name": "",
         "topic": "door/qrcode",
         "qos": "2",
-        "datatype": "auto",
-        "broker": "51e04813.b46358",
+        "datatype": "json",
+        "broker": "ac726da0.2d3b3",
         "x": 150,
         "y": 140,
         "wires": [
             [
-                "fedb82a0.2ea28"
+                "595c27c8.759778",
+                "4786210e.c8c08"
             ]
         ]
     },
     {
-        "id": "e3f261fa.2a6a8",
+        "id": "8d5f49fa.51d2e8",
+        "type": "ui_led",
+        "z": "32c1fd5e.098ec2",
+        "group": "c6c2ee50.12a99",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "label": "Tür-Öffner",
+        "labelPlacement": "left",
+        "labelAlignment": "left",
+        "colorForValue": [
+            {
+                "color": "green",
+                "value": "ON",
+                "valueType": "str"
+            },
+            {
+                "color": "grey",
+                "value": "OFF",
+                "valueType": "str"
+            }
+        ],
+        "allowColorForValueInMessage": false,
+        "name": "",
+        "x": 980,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "665b57f8.5d4768",
+        "type": "change",
+        "z": "32c1fd5e.098ec2",
+        "name": "Filter Door-ID",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "ATDT5912,#61",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 740,
+        "y": 480,
+        "wires": [
+            [
+                "6e298f59.4ff2f",
+                "fa57583d.4a4738"
+            ]
+        ]
+    },
+    {
+        "id": "6e298f59.4ff2f",
+        "type": "mqtt out",
+        "z": "32c1fd5e.098ec2",
+        "name": "Modem",
+        "topic": "serial/dial",
+        "qos": "",
+        "retain": "",
+        "broker": "ac726da0.2d3b3",
+        "x": 980,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "fa57583d.4a4738",
+        "type": "debug",
+        "z": "32c1fd5e.098ec2",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "x": 940,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "515f77cb.3da748",
         "type": "websocket-client",
         "z": "",
-        "path": "ws://192.168.1.27:8000/ws/request",
+        "path": "ws://localhost:8000/ws/request",
         "tls": "",
         "wholemsg": "false"
     },
     {
-        "id": "51e04813.b46358",
+        "id": "ac726da0.2d3b3",
         "type": "mqtt-broker",
         "z": "",
         "name": "docker mqtt",
-        "broker": "mqtt",
+        "broker": "localhost",
         "port": "1883",
         "clientid": "",
         "usetls": false,
@@ -495,5 +572,25 @@
         "willTopic": "",
         "willQos": "0",
         "willPayload": ""
+    },
+    {
+        "id": "c6c2ee50.12a99",
+        "type": "ui_group",
+        "z": "",
+        "name": "Eingangstür",
+        "tab": "e78f8765.5ac538",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "e78f8765.5ac538",
+        "type": "ui_tab",
+        "z": "",
+        "name": "Location",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
     }
 ]
