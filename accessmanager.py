@@ -54,7 +54,7 @@ class AccessManager:
 		# token received from websocket, test on valid and return feedback to websocket
 		if data['type'] == 'ac_tokenquery':
 			ws_user.ws.emit(
-				"tokenstate", {'valid': self.validate_token(data['config']['token'])})
+				"tokenstate", {'valid': self.validate_token(data['config']['token']), 'msg':data['config']})
 
 	def write_config(self, data):
 		''' stores changed config data on disk
