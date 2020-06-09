@@ -380,8 +380,8 @@
         "fieldType": "msg",
         "format": "handlebars",
         "syntax": "mustache",
-        "template": "{\"type\": \"ac_tokenquery\", \"config\":{ \"token\": \"{{{payload.qrcode}}}\"}}",
-        "output": "str",
+        "template": "{\"type\": \"ac_tokenquery\", \"config\":{ \"token\": \"{{{payload.qrcode}}}\", \"doorid\": \"{{{payload.doorid}}}\" } }",
+        "output": "json",
         "x": 730,
         "y": 140,
         "wires": [
@@ -498,8 +498,8 @@
                 "t": "set",
                 "p": "payload",
                 "pt": "msg",
-                "to": "ATDT5912,#61",
-                "tot": "str"
+                "to": "payload.config.msg.doorid",
+                "tot": "msg"
             }
         ],
         "action": "",
@@ -588,7 +588,7 @@
         "id": "e78f8765.5ac538",
         "type": "ui_tab",
         "z": "",
-        "name": "Location",
+        "name": "Yazaki Brake",
         "icon": "dashboard",
         "disabled": false,
         "hidden": false
