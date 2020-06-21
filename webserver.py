@@ -174,7 +174,7 @@ def ws_create(modref):
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--host", default=server_config["host"],
 						help="the IP interface to bound the server to")
-	parser.add_argument("-p", "--port", default=server_config["port"],
+	parser.add_argument("-p", "--port", default=server_config["port"], type=int,
 						help="the server port")
 	parser.add_argument("-s", "--secure", action="store_true", default=server_config["secure"],
 						help="use secure https: and wss:")
