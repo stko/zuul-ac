@@ -62,7 +62,10 @@ class AccessManager:
 		Args:
 		data (:obj:`obj`): new config data
 		'''
-
+		current_password=self.modref.store.read_config_value('current_password')
+		if not current_password==data['current_password']:
+			logger.debug("wrong password {0}".format(data['current_password']))
+			return
 		valid_fields = self.modref.store.config_keys()
 		for key in valid_fields:  # copy only the allowed fields
 			if key in data:

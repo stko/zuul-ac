@@ -57,6 +57,7 @@ Format of config.json:
 			"admins": [ # list of user_ids of the users which are admins
 					"1137173018"
 			],
+			"current_password": "password to protect against changes", 
 			"messenger_token": "the Bot API Token", 
 			"messenger_type": "telegram",
 			"server_config": { # address and port the http/websocket server binds to
@@ -104,6 +105,7 @@ Format of config.json:
 			self.config={
 				"admins": [
 				],
+				"current_password": "",
 				"messenger_token": "",
 				"messenger_type": "telegram",
 				"server_config": {
@@ -147,8 +149,6 @@ Format of config.json:
 			res.append(ttl)
 		return res
 
-
-
 	def config_keys(self):
 		'''provides config values allowed to change by the web interface
 		'''
@@ -168,6 +168,8 @@ Format of config.json:
 			config = {}
 			for key in self.config_keys():
 				config[key] = self.config[key]
+			# add an empty entry for the password field
+			config['current_password'] = ''
 			ws_user.ws.emit(
 				"tree", {'user_data': self.users, 'config_data': config})
 
