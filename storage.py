@@ -167,6 +167,11 @@ Format of config.json:
 		if data['type'] == 'st_tree':
 			config = {}
 			for key in self.config_keys():
+				### if we have a password, then the token should not be changed through
+				# the UI because of the actual poor implementation of the password handling
+				if self.config['current_password'] and key=='messenger_token':
+					continue
+
 				config[key] = self.config[key]
 			# add an empty entry for the password field
 			config['current_password'] = ''

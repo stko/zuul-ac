@@ -68,6 +68,10 @@ class AccessManager:
 			return
 		valid_fields = self.modref.store.config_keys()
 		for key in valid_fields:  # copy only the allowed fields
+			### if we have a password, then the token should not be changed through
+			# the UI because of the actual poor implementation of the password handling
+			if current_password and key=='messenger_token':
+				continue
 			if key in data:
 				logger.debug("new config {0} {1}".format(key, repr(data[key])))
 				self.modref.store.write_config_value(key, data[key], True)
