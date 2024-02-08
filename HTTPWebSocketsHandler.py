@@ -263,7 +263,7 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
             self.on_ws_closed()
         # ping
         elif self.opcode == self._opcode_ping:
-            _send_message(self._opcode_pong, message)
+            self._send_message(self._opcode_pong, message)
         # pong
         elif self.opcode == self._opcode_pong:
             pass

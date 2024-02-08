@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import threading
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, User
 from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ApplicationBuilder, ContextTypes
 
@@ -160,21 +161,34 @@ class ZuulMessengerPlugin:
 		# log all errors
 		self.application.add_error_handler(self.error)
 
+		# a masterpiece of https://gist.github.com/dmfigol/3e7d5b84a16d076df02baa9f53271058
+		# a coroutine in its own thread
+
+		loop = asyncio.new_event_loop()
+		
+		# Step 1): we start an empty thread with just an asyncio event loop
+
+		empty_thread_loop = threading.Thread(target=self.start_background_loop, args=(loop,))
+		empty_thread_loop.start()
+		
+		# Step2): we inject the async routine into the event loop of the empty thread
+		asyncio.run_coroutine_threadsafe(self.run(),loop)
+
+
+	def start_background_loop(self, loop: asyncio.AbstractEventLoop) -> None:
+		asyncio.set_event_loop(loop)
+		loop.run_forever()
+
+
+	async def run(self):
+		# https://github.com/python-telegram-bot/python-telegram-bot/discussions/3310
 		# Start the Bot
-		##self.application.run_polling()
-
-		# Run the bot until you press Ctrl-C or the process receives SIGINT,
-		# SIGTERM or SIGABRT. This should be used most of the time, since
-		# start_polling() is non-blocking and will stop the bot gracefully.
-
-		# updater.idle() can only be used in main thread
-		# updater.idle()
-
-	def run(self):
-
-		# Start the Bot
-		self.application.run_polling()
-
+		
+		async with self.application:
+			await self.application.initialize() # inits bot, update, persistence
+			await self.application.start()
+			await self.application.updater.start_polling()
+		
 	# https://github.com/python-telegram-bot/python-telegram-bot/issues/801#issuecomment-323778248
 	def shutdown(self):
 		self.application.shutdown()
@@ -278,7 +292,7 @@ class ZuulMessengerPlugin:
 
 	async def create_certificate(self, user_context, door_bot_name):
 		"""Send acertificate."""
-		own_bot_username = self.myself().name
+		own_bot_username = (await self.myself()).name
 		id_card = self.access_manager.request_id_card(
 			user_context.user, door_bot_name, own_bot_username)
 		qr = qrcode.QRCode(
@@ -307,7 +321,7 @@ class ZuulMessengerPlugin:
 			changed_users = self.access_manager.add_user(  # add the contact as new follower
 				user_context.user, user_context.new_contact)
 			keyboard = [[InlineKeyboardButton(
-				'🚪'+self.myself().first_name, callback_data='main')]]
+				'🚪'+(await self.myself()).first_name, callback_data='main')]]
 			reply_markup = InlineKeyboardMarkup(keyboard)
 			# sent a note to all users who have access now (again)
 			for user in changed_users:
@@ -450,7 +464,7 @@ class ZuulMessengerPlugin:
 									   self.list_sponsor_callback, True)
 		user_context.add_keyboard_item('🕮'+user_context._("About this Program"), "help",
 									   self.menu_help, True)
-		user_context.add_keyboard_item('🚪'+self.myself().first_name, "goto_main",
+		user_context.add_keyboard_item('🚪'+ (await self.myself()).first_name, "goto_main",
 									   self.menu_main, True)
 		reply_markup = user_context.compile_keyboard()
 		await user_context.msg.reply_text(
@@ -484,14 +498,14 @@ class ZuulMessengerPlugin:
 		reply_markup = user_context.compile_keyboard()
 		await user_context.msg.reply_text(text_info, reply_markup=reply_markup)
 
-	def add_follower(self, update, context, new_user):
+	async def add_follower(self, update, context, new_user):
 		'''verifies, if a shared contact shall be added as new follower
 		'''
 		user_context = UserContext.get_user_context(update, context, None)
 		user_context.clear_keyboard()
 		user_context.add_keyboard_item('👤➡👥 '+user_context._("Lend Key"), "add",
 									   self.add_follower_callback, True)
-		user_context.add_keyboard_item('🚪'+self.myself().first_name, "goto_main",
+		user_context.add_keyboard_item('🚪'+(await self.myself()).first_name, "goto_main",
 									   self.menu_main, True)
 		reply_markup = user_context.compile_keyboard()
 		update.message.reply_text(
@@ -504,7 +518,7 @@ class ZuulMessengerPlugin:
 		user_context.clear_keyboard()
 		user_context.add_keyboard_item(user_context._("Bring Back"), self.access_manager.user_id(user),
 									   self.delete_follower_callback, True)
-		user_context.add_keyboard_item('🚪'+self.myself().first_name, "goto_main",
+		user_context.add_keyboard_item('🚪'+(await self.myself()).first_name, "goto_main",
 									   self.menu_main, True)
 		reply_markup = user_context.compile_keyboard()
 		if update.message:
@@ -521,7 +535,7 @@ class ZuulMessengerPlugin:
 		user_context.clear_keyboard()
 		user_context.add_keyboard_item(user_context._("return"), self.access_manager.user_id(user),
 									   self.delete_sponsor_callback, True)
-		user_context.add_keyboard_item('🚪'+self.myself().first_name, "goto_main",
+		user_context.add_keyboard_item('🚪'+(await self.myself()).first_name, "goto_main",
 									   self.menu_main, True)
 		reply_markup = user_context.compile_keyboard()
 		if update.message:
@@ -561,7 +575,7 @@ class ZuulMessengerPlugin:
 			# just in case a new user got his initial notification
 			await self.menu_main(update, context, query)
 		else:
-			asyncio.run(user_context.execute_keyboard_callback(update, context, query))
+			await user_context.execute_keyboard_callback(update, context, query)
 		#query.edit_message_text(text="Selected option: {}".format(query.data))
 
 	async def echo(self, update, context):

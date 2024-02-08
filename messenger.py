@@ -31,9 +31,6 @@ class Messenger(object):
             self.messenger = self.my_messenger_class(
                 self.messenger_token, self.access_manager
             )
-            nest_asyncio.apply()
-            #self.run_sync()
-            asyncio.run(self.run_async())
 
             """
 			# Create a Thread with a function without any arguments
