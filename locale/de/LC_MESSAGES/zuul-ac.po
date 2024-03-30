@@ -27,7 +27,7 @@ msgstr ""
 
 #: m_telegram.py:208
 msgid "This Pin {1} is valid for {0} seconds"
-msgstr "Dieser Pin {1] ist für {0} Sekunden gültig"
+msgstr "Dieser Pin {1} ist für {0} Sekunden gültig"
 
 #: m_telegram.py:217
 msgid "You won't let in just now. Please try again at another time"

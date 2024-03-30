@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # https://inventwithpython.com/blog/2014/12/20/translate-your-python-3-program-with-the-gettext-module/
+# for the editor: sudo snap install poedit
 
 import os
 import gettext
