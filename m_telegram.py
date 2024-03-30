@@ -375,14 +375,14 @@ class ZuulMessengerPlugin:
 			await user_context.msg.reply_text(user_context._("Something went wrong"))
 		await self.menu_main(update, context, query)
 
-	def delete_follower_by_list_item(self, update, context, query):
+	async def delete_follower_by_list_item(self, update, context, query):
 		'''deletes a user'''
-		self.delete_follower(
+		await self.delete_follower(
 			update, context, self.access_manager.user_info_by_id(query.data))
 
-	def delete_sponsor_by_list_item(self, update, context, query):
+	async def delete_sponsor_by_list_item(self, update, context, query):
 		'''deletes a sponsor'''
-		self.delete_sponsor(
+		await self.delete_sponsor(
 			update, context, self.access_manager.user_info_by_id(query.data))
 
 	async def list_follower_callback(self, update, context, query):
@@ -402,7 +402,7 @@ class ZuulMessengerPlugin:
 		'''
 		user_context = UserContext.get_user_context(update, context, query)
 		user_context.last_follower_pos = self.fill_list(
-			query.data, self.access_manager.get_sponsor_list, self.delete_sponsor_by_list_item, self.list_sponsor_callback, user_context)
+			query.data, self.access_manager.get_sponsor_list, await self.delete_sponsor_by_list_item, self.list_sponsor_callback, user_context)
 		user_context.add_keyboard_item('🔑'+user_context._('Key Management'), "menu",
 									   self.menu_key_management, True)
 		reply_markup = user_context.compile_keyboard()
@@ -508,7 +508,7 @@ class ZuulMessengerPlugin:
 		user_context.add_keyboard_item('🚪'+(await self.myself()).first_name, "goto_main",
 									   self.menu_main, True)
 		reply_markup = user_context.compile_keyboard()
-		update.message.reply_text(
+		await update.message.reply_text(
 			user_context._('Ok to lend the Key to {0} {1}?').format(new_user['first_name'], new_user['last_name']), reply_markup=reply_markup)
 
 	async def delete_follower(self, update, context, user):
@@ -554,10 +554,10 @@ class ZuulMessengerPlugin:
 			user_context.new_contact)
 		if user_info != None:
 			if self.access_manager.user_is_follower(user_context.user, user_context.new_contact):
-				self.delete_follower(update, context, user_info)
+				await self.delete_follower(update, context, user_info)
 				return
 		if self.access_manager.user_can_lend(user_context.user):
-			self.add_follower(update, context, user_context.new_contact)
+			await self.add_follower(update, context, user_context.new_contact)
 		else:
 			await user_context.msg.reply_text(	user_context._(
 				'You can not lend your key further'))
