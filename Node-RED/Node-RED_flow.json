@@ -12,7 +12,7 @@
         "z": "32c1fd5e.098ec2",
         "name": "zuul",
         "server": "",
-        "client": "515f77cb.3da748",
+        "client": "4025a95e85247f7b",
         "x": 970,
         "y": 260,
         "wires": []
@@ -23,8 +23,8 @@
         "z": "32c1fd5e.098ec2",
         "name": "Zuul",
         "server": "",
-        "client": "515f77cb.3da748",
-        "x": 90,
+        "client": "4025a95e85247f7b",
+        "x": 50,
         "y": 240,
         "wires": [
             [
@@ -175,8 +175,8 @@
                 "e9b01134.ce2ed"
             ],
             [
-                "30a96863.43b108",
-                "665b57f8.5d4768"
+                "665b57f8.5d4768",
+                "34cec614d74bf158"
             ],
             []
         ]
@@ -202,13 +202,13 @@
         "type": "inject",
         "z": "32c1fd5e.098ec2",
         "name": "TRUE",
-        "topic": "A",
-        "payload": "true",
-        "payloadType": "bool",
         "repeat": "",
         "crontab": "",
         "once": true,
         "onceDelay": 0.1,
+        "topic": "A",
+        "payload": "true",
+        "payloadType": "bool",
         "x": 110,
         "y": 540,
         "wires": [
@@ -222,13 +222,13 @@
         "type": "inject",
         "z": "32c1fd5e.098ec2",
         "name": "FALSE",
-        "topic": "A",
-        "payload": "false",
-        "payloadType": "bool",
         "repeat": "",
         "crontab": "",
         "once": false,
         "onceDelay": 0.1,
+        "topic": "A",
+        "payload": "false",
+        "payloadType": "bool",
         "x": 110,
         "y": 600,
         "wires": [
@@ -366,7 +366,7 @@
         "z": "32c1fd5e.098ec2",
         "name": "zuul",
         "server": "",
-        "client": "515f77cb.3da748",
+        "client": "4025a95e85247f7b",
         "x": 970,
         "y": 140,
         "wires": []
@@ -380,7 +380,7 @@
         "fieldType": "msg",
         "format": "handlebars",
         "syntax": "mustache",
-        "template": "{\"type\": \"ac_tokenquery\", \"config\":{ \"token\": \"{{{payload.qrcode}}}\", \"doorid\": \"{{{payload.doorid}}}\" } }",
+        "template": "{\"type\": \"ac_tokenquery\", \"config\":{ \"token\": \"{{{payload}}}\", \"doorid\": \"1\" } }",
         "output": "json",
         "x": 730,
         "y": 140,
@@ -392,38 +392,20 @@
         ]
     },
     {
-        "id": "30a96863.43b108",
-        "type": "trigger",
-        "z": "32c1fd5e.098ec2",
-        "op1": "ON",
-        "op2": "OFF",
-        "op1type": "str",
-        "op2type": "str",
-        "duration": "3",
-        "extend": false,
-        "units": "s",
-        "reset": "",
-        "bytopic": "all",
-        "name": "Door Opener 3 Secs",
-        "x": 760,
-        "y": 340,
-        "wires": [
-            [
-                "5769967d.e270b8",
-                "8d5f49fa.51d2e8"
-            ]
-        ]
-    },
-    {
         "id": "5769967d.e270b8",
         "type": "mqtt out",
         "z": "32c1fd5e.098ec2",
         "name": "",
-        "topic": "cmnd/tasmota/POWER",
+        "topic": "qrdoor/e661308e3728732/open",
         "qos": "",
         "retain": "",
-        "broker": "ac726da0.2d3b3",
-        "x": 1030,
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "059bca2abc83dd01",
+        "x": 1050,
         "y": 340,
         "wires": []
     },
@@ -446,11 +428,14 @@
         "type": "mqtt in",
         "z": "32c1fd5e.098ec2",
         "name": "",
-        "topic": "door/qrcode",
+        "topic": "qrdoor/e661308e3728732/code",
         "qos": "2",
-        "datatype": "json",
-        "broker": "ac726da0.2d3b3",
-        "x": 150,
+        "datatype": "utf8",
+        "broker": "059bca2abc83dd01",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 210,
         "y": 140,
         "wires": [
             [
@@ -458,35 +443,6 @@
                 "4786210e.c8c08"
             ]
         ]
-    },
-    {
-        "id": "8d5f49fa.51d2e8",
-        "type": "ui_led",
-        "z": "32c1fd5e.098ec2",
-        "group": "c6c2ee50.12a99",
-        "order": 0,
-        "width": 0,
-        "height": 0,
-        "label": "Tür-Öffner",
-        "labelPlacement": "left",
-        "labelAlignment": "left",
-        "colorForValue": [
-            {
-                "color": "green",
-                "value": "ON",
-                "valueType": "str"
-            },
-            {
-                "color": "grey",
-                "value": "OFF",
-                "valueType": "str"
-            }
-        ],
-        "allowColorForValueInMessage": false,
-        "name": "",
-        "x": 980,
-        "y": 440,
-        "wires": []
     },
     {
         "id": "665b57f8.5d4768",
@@ -524,7 +480,12 @@
         "topic": "serial/dial",
         "qos": "",
         "retain": "",
-        "broker": "ac726da0.2d3b3",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "059bca2abc83dd01",
         "x": 980,
         "y": 480,
         "wires": []
@@ -544,53 +505,65 @@
         "wires": []
     },
     {
-        "id": "515f77cb.3da748",
-        "type": "websocket-client",
-        "z": "",
-        "path": "ws://localhost:8000/ws/request",
-        "tls": "",
-        "wholemsg": "false"
+        "id": "34cec614d74bf158",
+        "type": "change",
+        "z": "32c1fd5e.098ec2",
+        "name": "Set ON time",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "5",
+                "tot": "num"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 750,
+        "y": 340,
+        "wires": [
+            [
+                "5769967d.e270b8"
+            ]
+        ]
     },
     {
-        "id": "ac726da0.2d3b3",
+        "id": "4025a95e85247f7b",
+        "type": "websocket-client",
+        "path": "ws://zuulac:8000/",
+        "tls": "",
+        "wholemsg": "false",
+        "hb": "0",
+        "subprotocol": ""
+    },
+    {
+        "id": "059bca2abc83dd01",
         "type": "mqtt-broker",
-        "z": "",
-        "name": "docker mqtt",
-        "broker": "localhost",
+        "name": "mqtt",
+        "broker": "mqtt",
         "port": "1883",
         "clientid": "",
+        "autoConnect": true,
         "usetls": false,
-        "compatmode": false,
+        "protocolVersion": "4",
         "keepalive": "60",
         "cleansession": true,
         "birthTopic": "",
         "birthQos": "0",
         "birthPayload": "",
+        "birthMsg": {},
         "closeTopic": "",
         "closeQos": "0",
         "closePayload": "",
+        "closeMsg": {},
         "willTopic": "",
         "willQos": "0",
-        "willPayload": ""
-    },
-    {
-        "id": "c6c2ee50.12a99",
-        "type": "ui_group",
-        "z": "",
-        "name": "Eingangstür",
-        "tab": "e78f8765.5ac538",
-        "order": 1,
-        "disp": true,
-        "width": "6",
-        "collapse": false
-    },
-    {
-        "id": "e78f8765.5ac538",
-        "type": "ui_tab",
-        "z": "",
-        "name": "Yazaki Brake",
-        "icon": "dashboard",
-        "disabled": false,
-        "hidden": false
+        "willPayload": "",
+        "willMsg": {},
+        "sessionExpiry": ""
     }
 ]
