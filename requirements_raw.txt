@@ -1,0 +1,5 @@
+qrcode[pil]
+python-telegram-bot
+ecdsa
+nest
+asyncio
