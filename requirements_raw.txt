@@ -1,4 +1,4 @@
-qrcode[pil]
+qrcode
 python-telegram-bot
 ecdsa
 nest_asyncio

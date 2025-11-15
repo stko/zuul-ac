@@ -6,6 +6,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, User
 from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ApplicationBuilder, ContextTypes
 
 import qrcode
+from qrcode.image.pure import PyPNGImage
 import string
 import secrets
 import asyncio
@@ -224,10 +225,10 @@ class ZuulMessengerPlugin:
 				qr.add_data(otp['otp'])
 				qr.make(fit=True)
 
-				img = qr.make_image(fill_color="black", back_color="white")
+				img = qr.make_image(fill_color="black", back_color="white",image_factory=PyPNGImage)
 
 				bio = BytesIO()
-				bio.name = 'image.jpeg'
+				bio.name = 'image.png'
 				img.save(bio, 'PNG')
 				bio.seek(0)
 				if otp['msg']:
@@ -303,9 +304,9 @@ class ZuulMessengerPlugin:
 		)
 		qr.add_data(id_card)
 		qr.make(fit=True)
-		img = qr.make_image(fill_color="black", back_color="white")
+		img = qr.make_image(fill_color="black", back_color="white",image_factory=PyPNGImage)
 		bio = BytesIO()
-		bio.name = 'image.jpeg'
+		bio.name = 'image.png'
 		img.save(bio, 'PNG')
 		bio.seek(0)
 		msg_text = user_context._(
