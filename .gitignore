@@ -131,3 +131,9 @@ dmypy.json
 # local data
 config.json
 users.json
+
+# 3D printer files
+*.gcode
+*.step
+*.stl
+*.FCBak
