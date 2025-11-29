@@ -3,3 +3,4 @@ pypng
 python-telegram-bot
 ecdsa
 nest_asyncio
+pyserial
