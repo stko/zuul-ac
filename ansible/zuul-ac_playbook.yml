@@ -1,0 +1,211 @@
+---
+- name: Deploy ZUULAC on Raspberry Pi
+  hosts: zuulac_devices
+  become: yes
+
+  vars:
+    user: pi
+    home_dir: "/home/pi"
+    module_dir: "{{ home_dir }}/installdir"
+    zuulac_dir: "{{ module_dir }}/zuulac"
+    docker_compose_version: "v2.23.3"
+    ansible_python_interpreter: /usr/bin/python3
+
+
+  tasks:
+
+    #disable while testing & debugging
+    - name: Update & upgrade packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - git
+          - python3-venv
+          - python3-pip
+          - python3-virtualenv
+
+        state: present
+
+    # in case of re-deployment, remove existing dir
+    - name: Remove existing dir if exists
+      ansible.builtin.file:
+        state: absent
+        path: "{{ module_dir }}"
+
+
+    - name: ensures {{ module_dir }} dir exists
+      file: 
+        path: "{{ module_dir }}"
+        state: directory
+      become: yes
+      become_user: '{{ user }}'
+
+
+    - name: Clone ZUULAC repositories
+      git:
+        repo: "{{ item.repo }}"
+        dest: "{{ module_dir }}/{{ item.name }}"
+      
+      become: yes
+      become_user: '{{ user }}'
+      loop:
+        #- { name: labdash_internal, repo: "https://git:{{ githubpassword | urlencode | replace ('/', '%2f') }}@git.s26314.creoline.cloud/toplevel/inhouse/labdash_internal.git" }
+        - { name: zuulac, repo: "https://github.com/stko/zuul-ac.git" }
+
+    # - name: Create Python virtual environment
+    #   ansible.builtin.command: python3 -m venv .venv
+    #   args:
+    #     chdir: "{{ zuulac_dir }}"
+    #     creates: "{{ zuulac_dir }}/.venv"
+
+    # - name: update pip in virtual environment
+    #   ansible.builtin.command: python3 -m pip install --upgrade pip
+    #   args:
+    #     chdir: "{{ zuulac_dir }}"
+    #     creates: "{{ zuulac_dir }}/.venv/bin/pip"
+
+    # - name: install setuptools in virtual environment
+    #   ansible.builtin.command: python3 -m pip install --upgrade setuptools packaging
+    #   args:
+    #     chdir: "{{ zuulac_dir }}"
+    #     #creates: "{{ zuulac_dir }}/.venv/bin/pip"
+
+
+   # - name: Ensure packaging is installed system-wide
+   #   ansible.builtin.raw: '{{ ansible_python_interpreter }} -m pip install --quiet packaging'
+
+    - name: Install Python dependencies
+      ansible.builtin.pip:
+        requirements: "{{ zuulac_dir }}/requirements_raw.txt"
+        virtualenv: "{{ zuulac_dir }}/.venv"
+        virtualenv_python: python3
+        virtualenv_site_packages: yes
+        extra_args: --no-cache-dir
+      become: yes
+      become_user: '{{ user }}'
+      register: pip_result
+
+    # - name: Install editable dependencies
+    #   ansible.builtin.pip:
+    #     name: "{{ item }}"
+    #     virtualenv: "{{ zuulac_dir }}/.venv"
+    #     virtualenv_python: python3
+    #     virtualenv_site_packages: yes
+    #     editable: yes
+    #   loop:
+    #     - "{{ module_dir }}/cnclib"
+    #     - "{{ module_dir }}/tcpc"
+    #     - "{{ module_dir }}/MTDS_modify"
+    #     - "{{ module_dir }}/mtqr/python"
+    #     - "{{ module_dir }}/labdash"
+
+
+    - name: Add a line to a file if the file does not exist, without passing regexp
+      ansible.builtin.lineinfile:
+        path: /etc/sysctl.d/98-rpi.conf
+        line: net.ipv4.ip_forward = 1
+        create: yes
+
+    # - name: Install Docker
+    #   ansible.builtin.shell: curl -fsSL https://get.docker.com | sh
+    #   args:
+    #     creates: /usr/bin/docker
+
+    # - name: Add user to Docker group
+    #   user:
+    #     name: "{{ user }}"
+    #     groups: docker
+    #     append: yes
+
+    # - name: ensures docker plugin dir exists
+    #   file: 
+    #     path: "{{ home_dir }}/.docker/cli-plugins/"
+    #     state: directory
+    #     mode: '0755'
+
+
+    # - name: Install Docker Compose v2
+    #   get_url:
+    #     url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-linux-aarch64"
+    #     dest: "{{ home_dir }}/.docker/cli-plugins/docker-compose"
+    #     mode: '0755'
+
+  # Docker installation and setup https://github.com/docker/for-linux/issues/1105#issuecomment-913964377
+
+    # - name: prepare network for docker installation
+    #   ansible.builtin.shell: sudo update-alternatives --set iptables /usr/sbin/iptables-legacy
+
+##################  https://github.com/linuxserver/docker-wireguard/issues/138#issuecomment-1003173623 ##############
+
+
+    # - name: Make sure docker is running
+    #   ansible.builtin.systemd_service:
+    #     state: started
+    #     name: docker
+
+    # - name: Deploy Docker services
+    #   ansible.builtin.shell: docker compose up --build -d
+    #   args:
+    #     chdir: "{{ zuulac_dir }}/test/rabbitmq"
+
+    
+
+    # see https://www.raspberrypi.com/documentation/computers/configuration.html#serial-ports
+    # 
+    - name: Disable serial kernel console
+      ansible.builtin.shell: "raspi-config nonint do_serial_cons 1"
+
+    - name: Enable serial port hardware
+      ansible.builtin.shell: "raspi-config nonint do_serial_hw 0"
+
+    - name: Configure ZUULAC systemd service
+      copy:
+        dest: /etc/systemd/system/zuulac.service
+        content: |
+          [Unit]
+          Description=ZUULAC Description
+          After=network.target
+
+          [Service]
+          ExecStart={{ zuulac_dir }}/.venv/bin/python zuulac.py
+          WorkingDirectory={{ zuulac_dir }}
+          Restart=always
+          User={{ user }}
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Configure ZUULAC standalonoe systemd service
+      copy:
+        dest: /etc/systemd/system/zuulac-sa.service
+        content: |
+          [Unit]
+          ConditionPathExists={{ zuulac_dir }}/zuulac_standalone.py
+          Description=ZUULAC Standalone I/O Handler
+          After=network.target
+
+          [Service]
+          ExecStart={{ zuulac_dir }}/.venv/bin/python zuulac_standalone.py
+          WorkingDirectory={{ zuulac_dir }}
+          Restart=always
+          User={{ user }}
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable ZUULAC service
+      systemd:
+        name: zuulac.service
+        enabled: yes
+        state: started
+
+    - name: Enable ZUULAC standalone service
+      systemd:
+        name: zuulac-sa.service
+        enabled: yes
+        state: started
