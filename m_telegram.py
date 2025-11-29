@@ -189,6 +189,7 @@ class ZuulMessengerPlugin:
 			await self.application.initialize() # inits bot, update, persistence
 			await self.application.start()
 			await self.application.updater.start_polling()
+			await self.application.idle()
 		
 	# https://github.com/python-telegram-bot/python-telegram-bot/issues/801#issuecomment-323778248
 	def shutdown(self):
