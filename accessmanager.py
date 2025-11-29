@@ -460,6 +460,7 @@ class AccessManager:
 				valid_time = data['config']['valid_time']
 				msg_text = data['config']['msg']
 				otp_type = data['config']['type']
+				stringLength = data['config']['length']
 				if data['config']['type'] != 'qrcode':
 					password_characters = data['config']['keypadchars']
 				password_characters = password_characters.replace("\"", "").replace(
