@@ -4,3 +4,5 @@ python-telegram-bot
 ecdsa
 nest_asyncio
 pyserial
+websocket-client
+rel

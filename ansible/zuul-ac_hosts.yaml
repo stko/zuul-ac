@@ -6,7 +6,7 @@ quemu_devices:
       ansible_ssh_port: 5022
 zuulac_devices:
   hosts:
-    rpi-z-zuul:
+    rpi-z-zuulac:
       ansible_user: pi
       ansible_password: raspberry
       ansible_ssh_port: 22

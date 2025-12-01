@@ -120,7 +120,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Connector:Conn_01x04_Pin"
+		(symbol "Connector:Conn_01x06_Pin"
 			(pin_names
 				(offset 1.016)
 				(hide yes)
@@ -129,15 +129,15 @@
 			(in_bom yes)
 			(on_board yes)
 			(property "Reference" "J"
-				(at 0 5.08 0)
+				(at 0 7.62 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
 				)
 			)
-			(property "Value" "Conn_01x04_Pin"
-				(at 0 -7.62 0)
+			(property "Value" "Conn_01x06_Pin"
+				(at 0 -10.16 0)
 				(effects
 					(font
 						(size 1.27 1.27)
@@ -162,7 +162,7 @@
 					(hide yes)
 				)
 			)
-			(property "Description" "Generic connector, single row, 01x04, script generated"
+			(property "Description" "Generic connector, single row, 01x06, script generated"
 				(at 0 0 0)
 				(effects
 					(font
@@ -197,7 +197,18 @@
 					(hide yes)
 				)
 			)
-			(symbol "Conn_01x04_Pin_1_1"
+			(symbol "Conn_01x06_Pin_1_1"
+				(rectangle
+					(start 0.8636 5.207)
+					(end 0 4.953)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
 				(rectangle
 					(start 0.8636 2.667)
 					(end 0 2.413)
@@ -240,6 +251,29 @@
 					)
 					(fill
 						(type outline)
+					)
+				)
+				(rectangle
+					(start 0.8636 -7.493)
+					(end 0 -7.747)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.27 5.08) (xy 0.8636 5.08)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
 					)
 				)
 				(polyline
@@ -290,8 +324,20 @@
 						(type none)
 					)
 				)
+				(polyline
+					(pts
+						(xy 1.27 -7.62) (xy 0.8636 -7.62)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
 				(pin passive line
-					(at 5.08 2.54 180)
+					(at 5.08 5.08 180)
 					(length 3.81)
 					(name "Pin_1"
 						(effects
@@ -309,7 +355,7 @@
 					)
 				)
 				(pin passive line
-					(at 5.08 0 180)
+					(at 5.08 2.54 180)
 					(length 3.81)
 					(name "Pin_2"
 						(effects
@@ -327,7 +373,7 @@
 					)
 				)
 				(pin passive line
-					(at 5.08 -2.54 180)
+					(at 5.08 0 180)
 					(length 3.81)
 					(name "Pin_3"
 						(effects
@@ -345,7 +391,7 @@
 					)
 				)
 				(pin passive line
-					(at 5.08 -5.08 180)
+					(at 5.08 -2.54 180)
 					(length 3.81)
 					(name "Pin_4"
 						(effects
@@ -355,6 +401,42 @@
 						)
 					)
 					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 5.08 -5.08 180)
+					(length 3.81)
+					(name "Pin_5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 5.08 -7.62 180)
+					(length 3.81)
+					(name "Pin_6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "6"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -8534,33 +8616,35 @@
 		)
 	)
 	(symbol
-		(lib_id "Connector:Conn_01x04_Pin")
-		(at 240.03 83.82 0)
+		(lib_id "Connector:Conn_01x06_Pin")
+		(at 240.03 86.36 0)
 		(mirror y)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
 		(dnp no)
-		(uuid "5c2215e9-e0bf-44a8-aee6-ee07a1de7caf")
-		(property "Reference" "J7"
-			(at 239.395 76.2 0)
+		(uuid "6c4e5b94-28ef-4a8e-8cd7-a1737972d39a")
+		(property "Reference" "J4"
+			(at 235.204 75.946 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify right)
 			)
 		)
-		(property "Value" "Conn_01x04_Pin"
-			(at 239.395 78.74 0)
+		(property "Value" "Conn_01x06_Pin"
+			(at 231.394 78.232 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify right)
 			)
 		)
 		(property "Footprint" ""
-			(at 240.03 83.82 0)
+			(at 240.03 86.36 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -8569,7 +8653,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 240.03 83.82 0)
+			(at 240.03 86.36 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -8577,30 +8661,45 @@
 				(hide yes)
 			)
 		)
-		(property "Description" ""
-			(at 240.03 83.82 0)
+		(property "Description" "Generic connector, single row, 01x06, script generated"
+			(at 240.03 86.36 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Component" "GROW GM861S"
+			(at 237.49 96.774 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(pin "2"
-			(uuid "55cd76f9-e9f9-462b-9146-2dce82d9fc9f")
+		(pin "6"
+			(uuid "6a710c07-ef97-4466-b5d2-52103e270f62")
 		)
 		(pin "4"
-			(uuid "7fdcccda-27ab-417e-b9ca-4291c1097b6d")
+			(uuid "22204754-6cc8-4450-9198-115ae9c8a992")
 		)
 		(pin "3"
-			(uuid "49a87770-c0f6-4caf-be18-1c9397fbbf17")
+			(uuid "304aafec-be66-4273-84e2-faedaee8812d")
 		)
 		(pin "1"
-			(uuid "c8af1e42-6838-4a40-b053-7aaf918633ff")
+			(uuid "eaaecad8-fca6-44c6-9c0a-1996636f5f19")
+		)
+		(pin "5"
+			(uuid "e3c2d7e0-28ef-457e-b593-892b71345444")
+		)
+		(pin "2"
+			(uuid "7a53c771-f863-413f-ab29-f09d892a5568")
 		)
 		(instances
-			(project "raspberry_server"
+			(project ""
 				(path "/0ac397e0-c0fd-4c9c-8284-d13288d36551"
-					(reference "J7")
+					(reference "J4")
 					(unit 1)
 				)
 			)

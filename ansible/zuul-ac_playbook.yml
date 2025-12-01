@@ -3,6 +3,18 @@
   hosts: zuulac_devices
   become: yes
 
+  vars_prompt:
+
+    - name: wlanssid
+      prompt: What is your WiFi SSID?
+      private: false
+      default: SKWLANAP2
+
+
+    - name: wlanpassphrase
+      prompt: What is your WiFi passphrase?
+      private: false
+
   vars:
     user: pi
     home_dir: "/home/pi"
@@ -153,7 +165,18 @@
     #   args:
     #     chdir: "{{ zuulac_dir }}/test/rabbitmq"
 
-    
+   
+
+    - name: Enable SSH
+      ansible.builtin.shell: "raspi-config nonint do_ssh 0"
+ 
+   
+
+    - name: Setup WIFI
+      ansible.builtin.shell: "raspi-config nonint do_wifi_ssid_passphrase {{ wlanssid }} '{{ wlanpassphrase }}'"
+      tags:
+      - wifi
+ 
 
     # see https://www.raspberrypi.com/documentation/computers/configuration.html#serial-ports
     # 
